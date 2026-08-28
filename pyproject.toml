@@ -1,0 +1,16 @@
+[project]
+name = "recon"
+version = "0.1.3"
+description = "Security reconnaissance utilities"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "questionary>=2.1.1",
+    "typer>=0.27.1",
+]
+
+[project.gui-scripts]
+recon = "recon.cli:app"
+
+[tool.uv]
+package = true
