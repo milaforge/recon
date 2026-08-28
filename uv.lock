@@ -76,7 +76,7 @@ wheels = [
 
 [[package]]
 name = "recon"
-version = "0.1.2"
+version = "0.1.4"
 source = { editable = "." }
 dependencies = [
     { name = "questionary" },
