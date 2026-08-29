@@ -45,7 +45,7 @@ flowchart LR
     A["iter_commit_diffs(refs)"] --> B["Iterator[CommitDiff]"]
 ```
 
-- Newest-first ordering
+- Topological, oldest-first ordering: every parent precedes its children
 - Deduplicates commits reachable from multiple refs
 - Memory-efficient streaming
 
@@ -162,11 +162,17 @@ class ContentDetector(Protocol):
 ### Commit Enumeration (`git/commits.py`)
 
 ```python
-get_reachable_commits(ref) → list[str]        # SHAs, newest first
+get_reachable_commits(ref) → list[str]        # SHAs, topological oldest first
 get_all_reachable_commits(refs) → list[str]   # Deduplicated across refs
 ```
 
 Uses `git rev-list --topo-order --reverse` for topological ordering.
+
+One invocation covers all selected refs. Only reachable commits are scanned;
+shared commits are emitted once; roots are included; and parents precede their
+children. The relative order of unrelated branch tips is unspecified. An unborn
+`HEAD` is empty, while invalid explicit refs and missing objects fail with Git's
+diagnostic rather than returning a partial traversal.
 
 ### Diff Iteration (`git/traversal.py`)
 
@@ -188,6 +194,11 @@ get_file_diffs(commit) → list[FileDiff]
 
 Uses `git diff-tree -r --root -M -C --name-status -z` for rename/copy detection.
 
+NUL-delimited paths preserve spaces and non-ASCII characters. Old/new paths are
+retained where Git supplies them. Merge commits are visited once; changes made on
+their parents remain visible in those commits. This phase does not synthesize a
+combined merge-resolution diff.
+
 ---
 
 ## Repository Preparation (`git/repository.py`)
@@ -200,6 +211,11 @@ Validates:
 1. Inside a Git work tree
 2. Not a partial clone (`extensions.partialClone` or `remote.*.promisor`)
 3. Not shallow — or can be unshallowed via configured remote
+4. No replace refs or legacy grafts that locally alter the commit graph
+
+Completeness is fail-closed: incomplete clones, replacement history, invalid
+refs, and missing/corrupt objects abort instead of silently yielding partial
+results.
 
 ---
 

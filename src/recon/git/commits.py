@@ -40,11 +40,14 @@ def get_reachable_commits(ref: str, cwd: Path | str | None = None) -> list[str]:
     """
     Return every commit reachable from a ref.
 
-    Git's output is newest-first.
+    Commits are returned in deterministic topological, oldest-first order. A
+    parent therefore always appears before each of its children.
     """
     output = run_git(
         "rev-list",
         "--full-history",
+        "--topo-order",
+        "--reverse",
         ref,
         cwd=cwd,
     )
@@ -57,7 +60,8 @@ def get_all_reachable_commits(
     cwd: Path | str | None = None,
 ) -> list[str]:
     """
-    Return the unique commits reachable from all supplied refs.
+    Return unique commits reachable from all refs in topological, oldest-first
+    order. Git performs the cross-ref deduplication in one traversal.
     """
 
     refs = list(refs)
@@ -69,6 +73,8 @@ def get_all_reachable_commits(
         output = run_git(
             "rev-list",
             "--full-history",
+            "--topo-order",
+            "--reverse",
             *refs,
             cwd=cwd,
         )

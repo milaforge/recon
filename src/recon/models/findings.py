@@ -55,6 +55,8 @@ class Finding:
 
     pattern: str
     evidence: str
+    line_type: LineType | None = None
+    line_number: int | None = None
 
     @classmethod
     def from_path_match(
@@ -100,4 +102,6 @@ class Finding:
             new_path=change.new_path,
             pattern=match.pattern,
             evidence=match.line,
+            line_type=match.line_type,
+            line_number=match.line_number,
         )

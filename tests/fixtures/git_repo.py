@@ -282,6 +282,33 @@ def build_shared_commit(repo: Path) -> tuple[str, str, str]:
     return main_sha, feature_sha, shared_sha
 
 
+def build_merge_history(repo: Path) -> tuple[str, str, str, str]:
+    """Build two diverged branches and merge feature into main."""
+    write_file(repo, "README.md", "# Synthetic project\n")
+    root_sha = commit(repo, "root")
+
+    create_branch(repo, "feature")
+    write_file(repo, "feature.env", "SYNTHETIC_TOKEN=feature-only-value\n")
+    feature_sha = commit(repo, "feature exposure")
+
+    checkout(repo, "main")
+    write_file(repo, "main.txt", "main-side change\n")
+    main_sha = commit(repo, "main change")
+    run_git("merge", "--no-ff", "feature", "-m", "merge feature", cwd=repo)
+    merge_sha = get_head_sha(repo)
+    return root_sha, main_sha, feature_sha, merge_sha
+
+
+def build_unusual_path_history(repo: Path) -> tuple[str, str]:
+    """Add and delete a synthetic exposure under a space/non-ASCII path."""
+    path = "config files/秘密 🔐.env"
+    write_file(repo, path, "SYNTHETIC_TOKEN=unusual-path-value\n")
+    added_sha = commit(repo, "add unusual path")
+    delete_file(repo, path)
+    deleted_sha = commit(repo, "delete unusual path")
+    return added_sha, deleted_sha
+
+
 def build_remote_with_branches(remote: Path, working: Path) -> list[tuple[str, str]]:
     """
     Set up a bare remote with multiple branches pushed from working repo.

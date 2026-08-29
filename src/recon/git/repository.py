@@ -128,6 +128,31 @@ def ensure_complete_repository(cwd: Path | str | None = None) -> None:
     if is_shallow_repository(cwd=cwd):
         raise GitError("Repository is still shallow.")
 
+    ensure_unmodified_history(cwd=cwd)
+
+
+def ensure_unmodified_history(cwd: Path | str | None = None) -> None:
+    """Reject local mechanisms that replace the repository's recorded DAG."""
+    replace_refs = run_git(
+        "for-each-ref",
+        "--format=%(refname)",
+        "refs/replace/",
+        cwd=cwd,
+    ).splitlines()
+    git_dir = Path(run_git("rev-parse", "--git-dir", cwd=cwd).strip())
+    if not git_dir.is_absolute():
+        base = Path(cwd) if cwd is not None else Path.cwd()
+        git_dir = base / git_dir
+    grafts_file = git_dir / "info" / "grafts"
+
+    if replace_refs or (grafts_file.is_file() and grafts_file.stat().st_size > 0):
+        raise GitError(
+            "Modified Git history detected (replace refs or grafts).\n\n"
+            "recon cannot guarantee complete historical analysis while Git's "
+            "recorded commit graph is being rewritten locally. Remove the "
+            "replace refs/grafts or scan a clean clone."
+        )
+
 
 def get_git_config(key: str, cwd: Path | str | None = None) -> str | None:
     """Return a Git config value, or None when the key is absent."""

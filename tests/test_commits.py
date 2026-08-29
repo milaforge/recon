@@ -58,11 +58,11 @@ class TestGetReachableCommits:
 
         commits = get_reachable_commits("HEAD", cwd=git_repo)
 
-        # Should return all 3 commits, newest first
+        # Should return all 3 commits, topological oldest first
         assert len(commits) == 3
-        assert commits[0] == sha_c
+        assert commits[0] == sha_a
         assert commits[1] == sha_b
-        assert commits[2] == sha_a
+        assert commits[2] == sha_c
 
     def test_get_reachable_commits_from_branch(self, git_repo: Path) -> None:
         """get_reachable_commits should work from branch refs."""
@@ -123,3 +123,37 @@ class TestGetAllReachableCommits:
         commits = get_all_reachable_commits(["HEAD"], cwd=git_repo)
         assert len(commits) == 1
         assert commits[0] == sha
+
+    def test_merge_history_is_topological_and_deduplicated(self, git_repo: Path) -> None:
+        """Parents precede children and each merge ancestor appears once."""
+        from tests.fixtures.git_repo import build_merge_history
+
+        root, main, feature, merge = build_merge_history(git_repo)
+        commits = get_all_reachable_commits(["main", "feature"], cwd=git_repo)
+
+        assert len(commits) == len(set(commits)) == 4
+        assert commits[0] == root
+        assert commits[-1] == merge
+        assert commits.index(main) < commits.index(merge)
+        assert commits.index(feature) < commits.index(merge)
+
+    def test_shared_tag_and_remote_ref_do_not_duplicate_commits(self, git_repo: Path) -> None:
+        """Different ref namespaces still share one commit traversal."""
+        from tests.fixtures.git_repo import commit, run_git, write_file
+
+        write_file(git_repo, "root.txt", "root\n")
+        root = commit(git_repo, "root")
+        write_file(git_repo, "tip.txt", "tip\n")
+        tip = commit(git_repo, "tip")
+        run_git("tag", "release-test", tip, cwd=git_repo)
+        run_git("update-ref", "refs/remotes/origin/main", tip, cwd=git_repo)
+
+        commits = get_all_reachable_commits(
+            ["main", "refs/tags/release-test", "refs/remotes/origin/main"],
+            cwd=git_repo,
+        )
+
+        assert commits == [root, tip]
+
+    def test_empty_repository_head_has_no_reachable_commits(self, git_repo: Path) -> None:
+        assert get_all_reachable_commits(["HEAD"], cwd=git_repo) == []

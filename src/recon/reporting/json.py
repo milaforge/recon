@@ -26,6 +26,8 @@ class JSONReporter:
             "new_path": finding.new_path,
             "pattern": finding.pattern,
             "evidence": finding.evidence,
+            "line_type": finding.line_type.value if finding.line_type else None,
+            "line_number": finding.line_number,
         }
 
     def _json_serializer(self, obj):
