@@ -2,12 +2,13 @@
 Fetch tests: fetch-all with bare remote fixture.
 """
 
-import pytest
 from pathlib import Path
 
-from recon.git.fetch import fetch_all, fetch_branch, verify_branch, fetch_remote
+import pytest
+
+from recon.git.fetch import fetch_all, fetch_branch, fetch_remote, verify_branch
 from recon.git.refs import RemoteBranch, get_remote_branches
-from recon.git.repository import run_git, GitError
+from recon.git.repository import GitError, run_git
 
 
 class TestFetchBranch:
@@ -79,7 +80,14 @@ class TestFetchAll:
     def test_fetch_all_fails_on_shallow_without_remote(self, tmp_path: Path) -> None:
         """fetch_all should fail on shallow repo without remote."""
         import os
-        from tests.fixtures.git_repo import temp_git_repo, make_shallow, run_git, write_file, commit
+
+        from tests.fixtures.git_repo import (
+            commit,
+            make_shallow,
+            run_git,
+            temp_git_repo,
+            write_file,
+        )
 
         original_cwd = os.getcwd()
         try:

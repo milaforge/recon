@@ -4,12 +4,13 @@ This module will eventually feed both the path detector and content detector and
 
 from pathlib import Path
 
-from .repository import run_git
 from recon.models.diff import (
     ChangeStatus,
     FileChange,
     FileDiff,
 )
+
+from .repository import run_git
 
 
 def parse_change_status(status: str) -> ChangeStatus:

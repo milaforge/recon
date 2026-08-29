@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from .diff import FileChange
+from datetime import datetime
 from enum import Enum
+
+from .diff import FileChange
 
 
 class MatchType(str, Enum):
@@ -46,7 +48,7 @@ class Finding:
     commit_sha: str
     commit_subject: str
     author: str
-    timestamp: str
+    timestamp: datetime
 
     old_path: str | None
     new_path: str | None
@@ -63,7 +65,7 @@ class Finding:
         commit_sha: str,
         commit_subject: str,
         author: str,
-        timestamp: str,
+        timestamp: datetime,
     ) -> "Finding":
         return cls(
             detector="path",
@@ -86,7 +88,7 @@ class Finding:
         commit_sha: str,
         commit_subject: str,
         author: str,
-        timestamp: str,
+        timestamp: datetime,
     ) -> "Finding":
         return cls(
             detector="content",

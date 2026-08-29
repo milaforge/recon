@@ -5,10 +5,10 @@ Refs tests: remote branch discovery, local refs, tags.
 from pathlib import Path
 
 from recon.git.refs import (
-    get_remotes,
-    get_remote_branches,
     get_local_remote_refs,
     get_local_tags,
+    get_remote_branches,
+    get_remotes,
 )
 
 
@@ -72,7 +72,7 @@ class TestLocalRefs:
 
     def test_get_local_remote_refs_returns_tracking_refs(self, git_repo: Path) -> None:
         """get_local_remote_refs should return remote-tracking refs."""
-        from tests.fixtures.git_repo import run_git, temp_bare_repo, write_file, commit
+        from tests.fixtures.git_repo import commit, run_git, temp_bare_repo, write_file
 
         # Create a commit so we have something to push
         write_file(git_repo, "a.txt", "a\n")
@@ -90,7 +90,7 @@ class TestLocalRefs:
 
     def test_get_local_tags_returns_tags(self, git_repo: Path) -> None:
         """get_local_tags should return tag refs."""
-        from tests.fixtures.git_repo import run_git, commit, write_file
+        from tests.fixtures.git_repo import commit, run_git, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         commit(git_repo, "A")

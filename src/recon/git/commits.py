@@ -2,12 +2,13 @@
 This is the beginning of our historical traversal abstraction.
 """
 
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
 
 from ..git.diff import get_file_diffs
-from .repository import run_git, GitError
 from ..models.diff import Commit, CommitDiff
+from .repository import GitError, run_git
 
 
 def get_commit(sha: str, cwd: Path | str | None = None) -> Commit:
@@ -52,7 +53,7 @@ def get_reachable_commits(ref: str, cwd: Path | str | None = None) -> list[str]:
 
 
 def get_all_reachable_commits(
-    refs: list[str],
+    refs: Iterable[str],
     cwd: Path | str | None = None,
 ) -> list[str]:
     """

@@ -2,18 +2,25 @@
 CLI command for searching historical secret exposure.
 """
 
-import typer
-from typing import Annotated
+import re
 from pathlib import Path
+from typing import Annotated
 
-from recon.git import prepare_repository, get_local_remote_refs, get_local_tags
-from recon.git.traversal import iter_commit_diffs
-from recon.detectors.path import PathDetector
+import typer
+
 from recon.detectors.content import ContentDetector
-from recon.scanner import ExposureScanner
-from recon.reporting.terminal import TerminalReporter
+from recon.detectors.path import PathDetector
+from recon.git import (
+    GitError,
+    get_local_remote_refs,
+    get_local_tags,
+    prepare_repository,
+    run_git,
+)
+from recon.git.traversal import iter_commit_diffs
 from recon.reporting.json import JSONReporter
-
+from recon.reporting.terminal import TerminalReporter
+from recon.scanner import ExposureScanner
 
 app = typer.Typer(
     name="search_exposure",
@@ -33,13 +40,12 @@ def _resolve_refs(
 
     if all_refs:
         # All local branches, remote-tracking branches, and tags
-        import subprocess
         local_branches = [
-            b for b in subprocess.run(
-                ["git", "for-each-ref", "--format=%(refname:short)", "refs/heads/"],
-                cwd=cwd,
-                capture_output=True, text=True
-            ).stdout.splitlines() if b
+            branch
+            for branch in run_git(
+                "for-each-ref", "--format=%(refname:short)", "refs/heads/", cwd=cwd
+            ).splitlines()
+            if branch
         ]
         remote_refs = get_local_remote_refs(cwd=cwd)
         tags = get_local_tags(cwd=cwd)
@@ -75,21 +81,21 @@ def _build_reporter(format: str):
 def search_exposure(
     ctx: typer.Context,
     path_pattern: Annotated[
-        list[str],
+        list[str] | None,
         typer.Option(
             "-p",
             "--path-pattern",
             help="Regex pattern to match against file paths (repeatable).",
         ),
-    ] = [],
+    ] = None,
     content_pattern: Annotated[
-        list[str],
+        list[str] | None,
         typer.Option(
             "-g",
             "--content-pattern",
             help="Regex pattern to match against diff content (repeatable).",
         ),
-    ] = [],
+    ] = None,
     all_refs: Annotated[
         bool,
         typer.Option(
@@ -107,11 +113,11 @@ def search_exposure(
         ),
     ] = False,
     refs: Annotated[
-        list[str],
+        list[str] | None,
         typer.Argument(
             help="Specific refs to scan (branches, tags, commits).",
         ),
-    ] = [],
+    ] = None,
     format: Annotated[
         str,
         typer.Option(
@@ -137,7 +143,11 @@ def search_exposure(
         recon search_exposure -p '\\.env$' -g 'API_KEY='
         recon search_exposure -a -p '\\.env$' -g 'PRIVATE_KEY=' -g 'MNEMONIC'
     """
-    if not path_pattern and not content_pattern:
+    path_patterns = path_pattern or []
+    content_patterns = content_pattern or []
+    selected_ref_args = refs or []
+
+    if not path_patterns and not content_patterns:
         typer.echo("Error: At least one of -p/--path-pattern or -g/--content-pattern is required.", err=True)
         raise typer.Exit(1)
 
@@ -148,7 +158,7 @@ def search_exposure(
         prepare_repository(cwd=cwd)
 
         # Resolve refs to scan
-        selected_refs = _resolve_refs(all_refs, interactive, refs, cwd=cwd)
+        selected_refs = _resolve_refs(all_refs, interactive, selected_ref_args, cwd=cwd)
         if not selected_refs:
             typer.echo("No refs to scan.")
             raise typer.Exit(0)
@@ -156,7 +166,7 @@ def search_exposure(
         typer.echo(f"Scanning {len(selected_refs)} ref(s)...")
 
         # Build detectors
-        path_detector, content_detector = _build_detectors(path_pattern, content_pattern)
+        path_detector, content_detector = _build_detectors(path_patterns, content_patterns)
 
         # Build scanner
         scanner = ExposureScanner(
@@ -174,6 +184,6 @@ def search_exposure(
 
         typer.echo(f"\nDone. Found {len(findings)} match(es).")
 
-    except Exception as e:
+    except (GitError, OSError, re.error) as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)

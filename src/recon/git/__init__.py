@@ -24,10 +24,10 @@ from .refs import (
 from .repository import (
     GitError,
     ensure_repository,
-    repository_root,
-    run_git,
     is_shallow_repository,
     prepare_repository,
+    repository_root,
+    run_git,
     unshallow,
 )
 
@@ -49,9 +49,9 @@ __all__ = [
     "get_reachable_commits",
     "get_remote_branches",
     "get_remotes",
-    is_shallow_repository,
-    prepare_repository,
+    "is_shallow_repository",
+    "prepare_repository",
     "repository_root",
     "run_git",
-    unshallow,
+    "unshallow",
 ]

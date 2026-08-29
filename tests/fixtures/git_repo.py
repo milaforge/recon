@@ -7,9 +7,9 @@ real history. This validates our code against Git's actual behavior.
 
 import subprocess
 import tempfile
-from pathlib import Path
-from typing import Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 
 
 def run_git(*args: str, cwd: Path | str) -> str:
@@ -21,6 +21,7 @@ def run_git(*args: str, cwd: Path | str) -> str:
         cwd=str(cwd),
         text=True,
         capture_output=True,
+        check=False,
     )
 
     if result.returncode != 0:
@@ -37,6 +38,7 @@ def run_shell(*args: str, cwd: Path) -> str:
         cwd=cwd,
         text=True,
         capture_output=True,
+        check=False,
     )
 
     if result.returncode != 0:

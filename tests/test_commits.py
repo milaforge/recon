@@ -2,14 +2,15 @@
 Commit tests: metadata, reachable commits.
 """
 
-import pytest
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 from recon.git.commits import (
+    get_all_reachable_commits,
     get_commit,
     get_reachable_commits,
-    get_all_reachable_commits,
 )
 from recon.models.diff import Commit
 
@@ -19,7 +20,7 @@ class TestGetCommit:
 
     def test_get_commit_returns_correct_metadata(self, git_repo: Path) -> None:
         """get_commit should return correct commit metadata."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         sha = commit(git_repo, "Add a.txt")
@@ -44,7 +45,7 @@ class TestGetReachableCommits:
 
     def test_get_reachable_commits_returns_all_ancestors(self, git_repo: Path) -> None:
         """get_reachable_commits should return all commits reachable from a ref."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         sha_a = commit(git_repo, "A")
@@ -65,7 +66,7 @@ class TestGetReachableCommits:
 
     def test_get_reachable_commits_from_branch(self, git_repo: Path) -> None:
         """get_reachable_commits should work from branch refs."""
-        from tests.fixtures.git_repo import write_file, commit, create_branch, checkout
+        from tests.fixtures.git_repo import checkout, commit, create_branch, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         commit(git_repo, "A")
@@ -97,7 +98,7 @@ class TestGetAllReachableCommits:
         """get_all_reachable_commits should deduplicate shared commits."""
         from tests.fixtures.git_repo import build_shared_commit
 
-        main_sha, feature_sha, shared_sha = build_shared_commit(git_repo)
+        _main_sha, _feature_sha, _shared_sha = build_shared_commit(git_repo)
 
         commits = get_all_reachable_commits(["main", "feature"], cwd=git_repo)
 
@@ -114,7 +115,7 @@ class TestGetAllReachableCommits:
 
     def test_get_all_reachable_commits_single_ref(self, git_repo: Path) -> None:
         """get_all_reachable_commits should work with single ref."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         sha = commit(git_repo, "A")

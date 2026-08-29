@@ -5,11 +5,11 @@ historical exposure detection.
 
 from pathlib import Path
 
-from recon.git.traversal import iter_commit_diffs
-from recon.detectors.path import PathDetector
 from recon.detectors.content import ContentDetector
-from recon.scanner import ExposureScanner
+from recon.detectors.path import PathDetector
+from recon.git.traversal import iter_commit_diffs
 from recon.models.findings import Finding
+from recon.scanner import ExposureScanner
 
 
 def scan_repo(
@@ -108,7 +108,7 @@ class TestBranchScenarios:
         """
         from tests.fixtures.git_repo import build_branch_with_secret
 
-        main_sha, feature_sha = build_branch_with_secret(git_repo)
+        _main_sha, _feature_sha = build_branch_with_secret(git_repo)
 
         # Scan main - clean
         findings_main = scan_repo(git_repo, content_patterns=[r"api_key"], refs=["main"])
@@ -129,7 +129,7 @@ class TestBranchScenarios:
         main: C1 -> C2 (add secret) -> C3 (clean)
         feature: C1 -> C2 -> C4 (remove secret)
         """
-        from tests.fixtures.git_repo import write_file, commit, create_branch, checkout
+        from tests.fixtures.git_repo import checkout, commit, create_branch, write_file
 
         write_file(git_repo, "README.md", "# Project\n")
         commit(git_repo, "Initial")
@@ -177,7 +177,7 @@ class TestSharedCommitDeduplication:
         """
         from tests.fixtures.git_repo import build_shared_commit
 
-        main_sha, feature_sha, shared_sha = build_shared_commit(git_repo)
+        _main_sha, _feature_sha, shared_sha = build_shared_commit(git_repo)
 
         findings = scan_repo(git_repo, content_patterns=[r"SECRET="], refs=["main", "feature"])
 
@@ -191,7 +191,7 @@ class TestBinaryFiles:
 
     def test_binary_file_does_not_crash_scanner(self, git_repo: Path) -> None:
         """Binary files should not crash the scanner."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "README.md", "# Project\n")
         commit(git_repo, "Initial")
@@ -216,7 +216,7 @@ class TestFalsePositives:
         PRIVATE_KEY = os.getenv("PRIVATE_KEY")
         should match as evidence but NOT be classified as a secret.
         """
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "app.py", 'PRIVATE_KEY = os.getenv("PRIVATE_KEY")\n')
         commit(git_repo, "Add config loading")
@@ -234,7 +234,7 @@ class TestFalsePositives:
 
     def test_test_fixture_not_secret(self, git_repo: Path) -> None:
         """Test fixtures with fake secrets should match as evidence."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "test_config.py", 'API_KEY = "test_key_123"\n')
         commit(git_repo, "Add test config")
@@ -246,7 +246,7 @@ class TestFalsePositives:
 
     def test_documentation_example_not_secret(self, git_repo: Path) -> None:
         """Documentation examples should match as evidence."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "README.md", "# Config\n\nSet `PRIVATE_KEY=your_key_here`\n")
         commit(git_repo, "Add docs")
@@ -262,7 +262,7 @@ class TestMultiplePatterns:
 
     def test_multiple_content_patterns(self, git_repo: Path) -> None:
         """Multiple content patterns should all be matched."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "config.env", "API_KEY=key1\nPRIVATE_KEY=key2\nMNEMONIC=word1 word2\n")
         commit(git_repo, "Add keys")
@@ -278,7 +278,7 @@ class TestMultiplePatterns:
 
     def test_path_and_content_patterns_combined(self, git_repo: Path) -> None:
         """Path and content patterns should both work."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, ".env", "SECRET=value\n")
         write_file(git_repo, "config.json", '{"key": "value"}\n')
@@ -305,7 +305,7 @@ class TestTraversalEdgeCases:
 
     def test_single_commit_repository(self, git_repo: Path) -> None:
         """Single commit repository should work."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         commit(git_repo, "Only commit")
@@ -315,7 +315,7 @@ class TestTraversalEdgeCases:
 
     def test_traversal_order_newest_first(self, git_repo: Path) -> None:
         """Traversal should return commits newest-first."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         commit(git_repo, "A")

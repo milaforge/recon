@@ -70,7 +70,7 @@ class ContentDetector:
 
         Returns (None, ...) for diff metadata.
         """
-        if line.startswith("+++ ") or line.startswith("--- "):
+        if line.startswith(("+++ ", "--- ")):
             return None, line
 
         if line.startswith("@@"):

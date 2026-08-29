@@ -4,7 +4,7 @@ Path detector tests: regex matching against file paths.
 
 
 from recon.detectors.path import PathDetector
-from recon.models.diff import FileChange, ChangeStatus
+from recon.models.diff import ChangeStatus, FileChange
 
 
 class TestPathDetector:

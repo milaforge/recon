@@ -4,6 +4,7 @@ JSON reporter for findings.
 
 import json
 from datetime import datetime
+
 from recon.models.findings import Finding
 
 

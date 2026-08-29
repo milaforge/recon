@@ -3,8 +3,9 @@ This module owns fetching and verification.
 """
 
 from pathlib import Path
+
 from .refs import RemoteBranch, get_remote_branches, get_remotes
-from .repository import run_git, prepare_repository
+from .repository import prepare_repository, run_git
 
 
 def verify_branch(branch: RemoteBranch, cwd: Path | str | None = None) -> None:

@@ -1,8 +1,9 @@
+from importlib.metadata import version as package_version
+
 import typer
 
-from importlib.metadata import version as package_version
-from .git import GitError, fetch_all
 from .commands.search_exposure import app as search_exposure_app
+from .git import GitError, fetch_all
 
 app = typer.Typer(
     name="recon",

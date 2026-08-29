@@ -1,16 +1,15 @@
-from .findings import (
-    ContentMatch,
-    Finding,
-    PathMatch,
-    LineType,
-)
-
 from .diff import (
+    ChangeStatus,
     Commit,
     CommitDiff,
     FileChange,
-    ChangeStatus,
     FileDiff,
+)
+from .findings import (
+    ContentMatch,
+    Finding,
+    LineType,
+    PathMatch,
 )
 
 __all__ = [

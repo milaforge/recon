@@ -4,11 +4,11 @@ Scanner integration tests: end-to-end scanner with detectors.
 
 from pathlib import Path
 
-from recon.git.traversal import iter_commit_diffs
-from recon.detectors.path import PathDetector
 from recon.detectors.content import ContentDetector
-from recon.scanner import ExposureScanner
+from recon.detectors.path import PathDetector
+from recon.git.traversal import iter_commit_diffs
 from recon.models.findings import Finding
+from recon.scanner import ExposureScanner
 
 
 def scan_repo(
@@ -48,7 +48,7 @@ class TestScannerIntegration:
 
     def test_scanner_finds_secret_in_added_file(self, git_repo: Path) -> None:
         """Scanner should find secret in added file."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "config.env", "API_KEY=secret123\n")
         commit(git_repo, "Add config")
@@ -64,7 +64,7 @@ class TestScannerIntegration:
 
     def test_scanner_finds_secret_in_modified_file(self, git_repo: Path) -> None:
         """Scanner should find secret in modified file (both old and new)."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "config.env", "API_KEY=old\n")
         commit(git_repo, "Initial")
@@ -83,7 +83,7 @@ class TestScannerIntegration:
 
     def test_scanner_finds_secret_in_deleted_file(self, git_repo: Path) -> None:
         """Scanner should find secret in deleted file."""
-        from tests.fixtures.git_repo import write_file, commit, delete_file
+        from tests.fixtures.git_repo import commit, delete_file, write_file
 
         write_file(git_repo, "secrets.txt", "PASSWORD=hunter2\n")
         commit(git_repo, "Add password")
@@ -100,7 +100,7 @@ class TestScannerIntegration:
 
     def test_scanner_finds_secret_in_renamed_file(self, git_repo: Path) -> None:
         """Scanner should find secret in renamed file."""
-        from tests.fixtures.git_repo import write_file, commit, rename_file
+        from tests.fixtures.git_repo import commit, rename_file, write_file
 
         write_file(git_repo, "old.env", "SECRET=value\n")
         commit(git_repo, "Add secret")
@@ -132,7 +132,7 @@ class TestScannerIntegration:
 
     def test_scanner_finds_secret_only_on_branch(self, git_repo: Path) -> None:
         """Scanner should find secret only on branch where it exists."""
-        from tests.fixtures.git_repo import write_file, commit, create_branch, checkout
+        from tests.fixtures.git_repo import checkout, commit, create_branch, write_file
 
         write_file(git_repo, "README.md", "# Project\n")
         commit(git_repo, "Initial")
@@ -159,7 +159,7 @@ class TestScannerIntegration:
         """Scanner should deduplicate commits reachable from multiple refs."""
         from tests.fixtures.git_repo import build_shared_commit
 
-        main_sha, feature_sha, shared_sha = build_shared_commit(git_repo)
+        _main_sha, _feature_sha, shared_sha = build_shared_commit(git_repo)
 
         findings = scan_repo(git_repo, content_patterns=[r"SECRET="], refs=["main", "feature"])
 
@@ -169,7 +169,7 @@ class TestScannerIntegration:
 
     def test_scanner_with_both_detectors(self, git_repo: Path) -> None:
         """Scanner should run both path and content detectors."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "config.env", "API_KEY=key\n")
         commit(git_repo, "Add config")
@@ -186,7 +186,7 @@ class TestScannerIntegration:
 
     def test_scanner_empty_patterns_returns_no_findings(self, git_repo: Path) -> None:
         """Scanner with no patterns should return no findings."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "secret.txt", "TOKEN=abc\n")
         commit(git_repo, "Add token")
@@ -196,7 +196,7 @@ class TestScannerIntegration:
 
     def test_scanner_no_detectors_returns_no_findings(self, git_repo: Path) -> None:
         """Scanner with no detectors should return no findings."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "secret.txt", "TOKEN=abc\n")
         commit(git_repo, "Add token")
@@ -206,7 +206,7 @@ class TestScannerIntegration:
 
     def test_scanner_finding_metadata_complete(self, git_repo: Path) -> None:
         """Scanner findings should have complete metadata."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "secret.txt", "TOKEN=abc123\n")
         commit_sha = commit(git_repo, "Add token")

@@ -2,32 +2,33 @@
 Pytest configuration and shared fixtures.
 """
 
-import pytest
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
+
+import pytest
 
 from tests.fixtures.git_repo import (
-    temp_git_repo,
-    temp_bare_repo,
-    commit,
-    write_file,
-    delete_file,
-    rename_file,
-    create_branch,
+    build_branch_with_secret,
+    build_linear_history,
+    build_remote_with_branches,
+    build_shared_commit,
     checkout,
+    clone_repo,
+    commit,
+    create_branch,
+    delete_file,
     get_head_sha,
-    get_remote_branches,
     get_local_branches,
     get_local_remote_refs,
     get_local_tags,
+    get_remote_branches,
     is_shallow,
     make_shallow,
     push_to_remote,
-    clone_repo,
-    build_linear_history,
-    build_branch_with_secret,
-    build_shared_commit,
-    build_remote_with_branches,
+    rename_file,
+    temp_bare_repo,
+    temp_git_repo,
+    write_file,
 )
 
 
@@ -65,27 +66,27 @@ def cloned_repo(bare_repo: Path, tmp_path: Path) -> Iterator[Path]:
 
 # Re-export helpers for direct use in tests
 __all__ = [
-    "git_repo",
     "bare_repo",
-    "remote_with_branches",
+    "build_branch_with_secret",
+    "build_linear_history",
+    "build_remote_with_branches",
+    "build_shared_commit",
+    "checkout",
+    "clone_repo",
     "cloned_repo",
     "commit",
-    "write_file",
-    "delete_file",
-    "rename_file",
     "create_branch",
-    "checkout",
+    "delete_file",
     "get_head_sha",
-    "get_remote_branches",
     "get_local_branches",
     "get_local_remote_refs",
     "get_local_tags",
+    "get_remote_branches",
+    "git_repo",
     "is_shallow",
     "make_shallow",
     "push_to_remote",
-    "clone_repo",
-    "build_linear_history",
-    "build_branch_with_secret",
-    "build_shared_commit",
-    "build_remote_with_branches",
+    "remote_with_branches",
+    "rename_file",
+    "write_file",
 ]

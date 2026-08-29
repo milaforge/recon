@@ -1,7 +1,7 @@
-from .terminal import TerminalReporter
 from .json import JSONReporter
+from .terminal import TerminalReporter
 
 __all__ = [
-    "TerminalReporter",
     "JSONReporter",
+    "TerminalReporter",
 ]

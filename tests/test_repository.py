@@ -2,17 +2,18 @@
 Repository-level tests: detection, shallow, complete-history preparation.
 """
 
-import pytest
 from pathlib import Path
 
+import pytest
+
 from recon.git.repository import (
-    ensure_repository,
-    repository_root,
-    is_shallow_repository,
-    is_partial_repository,
-    prepare_repository,
-    unshallow,
     GitError,
+    ensure_repository,
+    is_partial_repository,
+    is_shallow_repository,
+    prepare_repository,
+    repository_root,
+    unshallow,
 )
 
 
@@ -55,7 +56,7 @@ class TestShallowRepository:
         original_cwd = os.getcwd()
         try:
             # Create a commit in the source repo so it can be cloned
-            from tests.fixtures.git_repo import write_file, commit
+            from tests.fixtures.git_repo import commit, write_file
             write_file(git_repo, "file.txt", "content\n")
             commit(git_repo, "initial")
 
@@ -76,7 +77,7 @@ class TestShallowRepository:
         original_cwd = os.getcwd()
         try:
             # Create a commit in the source repo so it can be cloned
-            from tests.fixtures.git_repo import write_file, commit
+            from tests.fixtures.git_repo import commit, write_file
             write_file(git_repo, "file.txt", "content\n")
             commit(git_repo, "initial")
 
@@ -119,7 +120,7 @@ class TestPrepareRepository:
         original_cwd = os.getcwd()
         try:
             shallow_dir = tmp_path / "shallow"
-            from tests.fixtures.git_repo import run_git, write_file, commit
+            from tests.fixtures.git_repo import commit, run_git, write_file
             
             # Create a commit in the source repo so it can be cloned
             write_file(git_repo, "file.txt", "content\n")

@@ -17,6 +17,7 @@ def run_git(*args: str, cwd: Path | str | None = None) -> str:
         cwd=cwd,
         text=True,
         capture_output=True,
+        check=False,
     )
 
     if result.returncode != 0:
@@ -135,6 +136,7 @@ def get_git_config(key: str, cwd: Path | str | None = None) -> str | None:
         cwd=cwd,
         text=True,
         capture_output=True,
+        check=False,
     )
 
     if result.returncode == 1:

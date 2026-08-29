@@ -6,8 +6,8 @@ from pathlib import Path
 
 from recon.git.diff import (
     get_file_changes,
-    get_file_patch,
     get_file_diffs,
+    get_file_patch,
     get_patch,
 )
 from recon.models.diff import ChangeStatus, FileChange, FileDiff
@@ -18,7 +18,7 @@ class TestGetFileChanges:
 
     def test_get_file_changes_detects_added(self, git_repo: Path) -> None:
         """get_file_changes should detect added files."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "new.txt", "content\n")
         sha = commit(git_repo, "Add new.txt")
@@ -33,7 +33,7 @@ class TestGetFileChanges:
 
     def test_get_file_changes_detects_modified(self, git_repo: Path) -> None:
         """get_file_changes should detect modified files."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "file.txt", "original\n")
         commit(git_repo, "Initial")
@@ -51,7 +51,7 @@ class TestGetFileChanges:
 
     def test_get_file_changes_detects_deleted(self, git_repo: Path) -> None:
         """get_file_changes should detect deleted files."""
-        from tests.fixtures.git_repo import write_file, commit, delete_file
+        from tests.fixtures.git_repo import commit, delete_file, write_file
 
         write_file(git_repo, "file.txt", "content\n")
         commit(git_repo, "Add file.txt")
@@ -69,7 +69,7 @@ class TestGetFileChanges:
 
     def test_get_file_changes_detects_rename(self, git_repo: Path) -> None:
         """get_file_changes should detect renamed files with both paths."""
-        from tests.fixtures.git_repo import write_file, commit, rename_file
+        from tests.fixtures.git_repo import commit, rename_file, write_file
 
         write_file(git_repo, "old.txt", "content\n")
         commit(git_repo, "Add old.txt")
@@ -87,7 +87,7 @@ class TestGetFileChanges:
 
     def test_get_file_changes_detects_copy(self, git_repo: Path) -> None:
         """get_file_changes should handle copied files (if detected by Git)."""
-        from tests.fixtures.git_repo import write_file, commit, run_git, run_shell
+        from tests.fixtures.git_repo import commit, run_git, run_shell, write_file
 
         write_file(git_repo, "source.txt", "content\n")
         commit(git_repo, "Add source.txt")
@@ -113,7 +113,7 @@ class TestGetFileChanges:
 
     def test_get_file_changes_multiple_files(self, git_repo: Path) -> None:
         """get_file_changes should handle multiple files in one commit."""
-        from tests.fixtures.git_repo import write_file, commit, delete_file
+        from tests.fixtures.git_repo import commit, delete_file, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         write_file(git_repo, "b.txt", "b\n")
@@ -138,8 +138,8 @@ class TestGetFilePatch:
 
     def test_get_file_patch_returns_diff_for_added(self, git_repo: Path) -> None:
         """get_file_patch should return diff for added file."""
-        from tests.fixtures.git_repo import write_file, commit
         from recon.models.diff import ChangeStatus
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "new.txt", "hello\n")
         sha = commit(git_repo, "Add new.txt")
@@ -152,8 +152,8 @@ class TestGetFilePatch:
 
     def test_get_file_patch_returns_diff_for_modified(self, git_repo: Path) -> None:
         """get_file_patch should return diff for modified file."""
-        from tests.fixtures.git_repo import write_file, commit
         from recon.models.diff import ChangeStatus
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "file.txt", "old\n")
         commit(git_repo, "Initial")
@@ -173,8 +173,8 @@ class TestGetFilePatch:
 
     def test_get_file_patch_returns_diff_for_deleted(self, git_repo: Path) -> None:
         """get_file_patch should return diff for deleted file."""
-        from tests.fixtures.git_repo import write_file, commit, delete_file
         from recon.models.diff import ChangeStatus
+        from tests.fixtures.git_repo import commit, delete_file, write_file
 
         write_file(git_repo, "file.txt", "content\n")
         commit(git_repo, "Add file.txt")
@@ -189,8 +189,8 @@ class TestGetFilePatch:
 
     def test_get_file_patch_uses_new_path_for_rename(self, git_repo: Path) -> None:
         """get_file_patch should use new path for renamed files."""
-        from tests.fixtures.git_repo import write_file, commit, rename_file
         from recon.models.diff import ChangeStatus
+        from tests.fixtures.git_repo import commit, rename_file, write_file
 
         write_file(git_repo, "old.txt", "content\n")
         commit(git_repo, "Add old.txt")
@@ -214,7 +214,7 @@ class TestGetFileDiffs:
 
     def test_get_file_diffs_returns_file_diffs(self, git_repo: Path) -> None:
         """get_file_diffs should return FileDiff objects with changes and patches."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "file.txt", "content\n")
         sha = commit(git_repo, "Add file.txt")
@@ -234,7 +234,7 @@ class TestGetPatch:
 
     def test_get_patch_returns_complete_patch(self, git_repo: Path) -> None:
         """get_patch should return complete textual patch for a commit."""
-        from tests.fixtures.git_repo import write_file, commit
+        from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "a.txt", "a\n")
         write_file(git_repo, "b.txt", "b\n")
