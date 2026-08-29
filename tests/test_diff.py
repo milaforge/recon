@@ -2,7 +2,6 @@
 Diff tests: file changes A/M/D/R/C, rename paths.
 """
 
-import pytest
 from pathlib import Path
 
 from recon.git.diff import (
@@ -140,7 +139,7 @@ class TestGetFilePatch:
     def test_get_file_patch_returns_diff_for_added(self, git_repo: Path) -> None:
         """get_file_patch should return diff for added file."""
         from tests.fixtures.git_repo import write_file, commit
-        from recon.models.diff import FileChange, ChangeStatus
+        from recon.models.diff import ChangeStatus
 
         write_file(git_repo, "new.txt", "hello\n")
         sha = commit(git_repo, "Add new.txt")
@@ -154,7 +153,7 @@ class TestGetFilePatch:
     def test_get_file_patch_returns_diff_for_modified(self, git_repo: Path) -> None:
         """get_file_patch should return diff for modified file."""
         from tests.fixtures.git_repo import write_file, commit
-        from recon.models.diff import FileChange, ChangeStatus
+        from recon.models.diff import ChangeStatus
 
         write_file(git_repo, "file.txt", "old\n")
         commit(git_repo, "Initial")
@@ -175,7 +174,7 @@ class TestGetFilePatch:
     def test_get_file_patch_returns_diff_for_deleted(self, git_repo: Path) -> None:
         """get_file_patch should return diff for deleted file."""
         from tests.fixtures.git_repo import write_file, commit, delete_file
-        from recon.models.diff import FileChange, ChangeStatus
+        from recon.models.diff import ChangeStatus
 
         write_file(git_repo, "file.txt", "content\n")
         commit(git_repo, "Add file.txt")
@@ -191,7 +190,7 @@ class TestGetFilePatch:
     def test_get_file_patch_uses_new_path_for_rename(self, git_repo: Path) -> None:
         """get_file_patch should use new path for renamed files."""
         from tests.fixtures.git_repo import write_file, commit, rename_file
-        from recon.models.diff import FileChange, ChangeStatus
+        from recon.models.diff import ChangeStatus
 
         write_file(git_repo, "old.txt", "content\n")
         commit(git_repo, "Add old.txt")

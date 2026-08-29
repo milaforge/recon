@@ -2,7 +2,6 @@
 Scanner integration tests: end-to-end scanner with detectors.
 """
 
-import pytest
 from pathlib import Path
 
 from recon.git.traversal import iter_commit_diffs

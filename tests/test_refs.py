@@ -2,7 +2,6 @@
 Refs tests: remote branch discovery, local refs, tags.
 """
 
-import pytest
 from pathlib import Path
 
 from recon.git.refs import (
@@ -10,7 +9,6 @@ from recon.git.refs import (
     get_remote_branches,
     get_local_remote_refs,
     get_local_tags,
-    RemoteBranch,
 )
 
 

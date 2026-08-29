@@ -19,7 +19,7 @@ class TestFetchBranch:
         """fetch_branch should fetch and verify a branch."""
         from tests.fixtures.git_repo import build_remote_with_branches
 
-        pushed = build_remote_with_branches(bare_repo, git_repo)
+        build_remote_with_branches(bare_repo, git_repo)
 
         branches = get_remote_branches("origin", cwd=git_repo)
         main_branch = next(b for b in branches if b.name == "main")
@@ -109,14 +109,13 @@ class TestFetchRemote:
         """fetch_remote should fetch only selected branches."""
         from tests.fixtures.git_repo import build_remote_with_branches
 
-        pushed = build_remote_with_branches(bare_repo, git_repo)
+        build_remote_with_branches(bare_repo, git_repo)
 
         branches = get_remote_branches("origin", cwd=git_repo)
         main_branch = next(b for b in branches if b.name == "main")
         busd_branch = next(b for b in branches if b.name == "feature/busd")
 
-        # Record SHAs before fetch
-        main_sha_before = run_git("rev-parse", main_branch.remote_ref, cwd=git_repo).strip()
+        # Record the other branch before fetch.
         busd_sha_before = run_git("rev-parse", busd_branch.remote_ref, cwd=git_repo).strip()
 
         fetch_remote("origin", [main_branch], cwd=git_repo)

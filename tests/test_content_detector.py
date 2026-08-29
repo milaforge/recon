@@ -2,10 +2,9 @@
 Content detector tests: regex matching against diff content, line classification.
 """
 
-import pytest
 
 from recon.detectors.content import ContentDetector
-from recon.models.findings import ContentMatch, LineType
+from recon.models.findings import LineType
 
 
 class TestContentDetector:

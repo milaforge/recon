@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from .diff import Commit, FileChange
+from .diff import FileChange
 from enum import Enum
 
 

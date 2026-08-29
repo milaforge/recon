@@ -3,7 +3,6 @@ This is the beginning of our historical traversal abstraction.
 """
 
 from datetime import datetime
-from collections.abc import Iterable
 from pathlib import Path
 
 from ..git.diff import get_file_diffs
