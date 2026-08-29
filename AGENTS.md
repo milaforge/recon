@@ -13,7 +13,7 @@
 ```
 recon/
 ├── AGENTS.md                    # This file
-├── README.md                    # Product vision & architecture
+├── README.md                    # Concise visitor landing page
 ├── pyproject.toml               # Project config (uv, Python 3.13+, typer, questionary)
 ├── src/
 │   └── recon/
@@ -201,7 +201,7 @@ uv run recon search_exposure -g 'PRIVATE_KEY='
 |------|---------|
 | `CONTRIBUTING.md` | **Start here** — Quick start for new detectors, workflow, test guidelines |
 | `AGENT_GUIDE.md` | Comprehensive patterns: detector implementation, test layers, CLI wiring, common pitfalls |
-| `QUICK_REFERENCE.md` | Copy-paste templates: detector, tests, CLI options, scanner extension, assertions |
+| `docs/development/contributing.md` | Concise setup and contribution workflow |
 | `docs/architecture/overview.md` | System architecture, data models, detector design, Git traversal |
 | `docs/architecture/data-flow.md` | Stage-by-stage pipeline with code references |
 | `docs/architecture/detectors.md` | Detector protocols, implementation details, future types |
