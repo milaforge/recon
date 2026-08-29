@@ -57,6 +57,11 @@ def run_git(*args, cwd) -> str
 
 **Scenario builders (domain-specific):**
 
+In addition to the lifecycle builders below, `build_merge_history` covers
+diverged branches and a merge, while `build_unusual_path_history` covers spaces
+and non-ASCII filenames. Traversal tests extend these shared builders rather than
+creating private fixture repositories.
+
 ```mermaid
 flowchart LR
     subgraph build_linear_history

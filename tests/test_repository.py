@@ -9,6 +9,7 @@ import pytest
 from recon.git.repository import (
     GitError,
     ensure_repository,
+    ensure_unmodified_history,
     is_partial_repository,
     is_shallow_repository,
     prepare_repository,
@@ -112,6 +113,32 @@ class TestPrepareRepository:
         """prepare_repository should succeed for normal repo."""
         # Should not raise
         prepare_repository(cwd=git_repo)
+
+    def test_replace_refs_fail_closed(self, git_repo: Path) -> None:
+        """Locally replaced history makes completeness unknowable."""
+        from tests.fixtures.git_repo import commit, run_git, write_file
+
+        write_file(git_repo, "one.txt", "one\n")
+        original = commit(git_repo, "original")
+        write_file(git_repo, "two.txt", "two\n")
+        replacement = commit(git_repo, "replacement")
+        run_git("replace", original, replacement, cwd=git_repo)
+
+        with pytest.raises(GitError, match="Modified Git history"):
+            ensure_unmodified_history(cwd=git_repo)
+
+    def test_grafts_fail_closed(self, git_repo: Path) -> None:
+        """Legacy graft configuration is rejected with actionable guidance."""
+        from tests.fixtures.git_repo import commit, run_git, write_file
+
+        write_file(git_repo, "one.txt", "one\n")
+        sha = commit(git_repo, "original")
+        git_dir = git_repo / run_git("rev-parse", "--git-dir", cwd=git_repo).strip()
+        grafts = git_dir / "info" / "grafts"
+        grafts.write_text(f"{sha}\n")
+
+        with pytest.raises(GitError, match="replace refs or grafts"):
+            ensure_unmodified_history(cwd=git_repo)
 
     def test_prepare_repository_fails_for_shallow_repo(self, git_repo: Path, tmp_path: Path) -> None:
         """prepare_repository should fail for shallow repo without remote."""

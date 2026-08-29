@@ -186,6 +186,39 @@ class TestSharedCommitDeduplication:
         assert findings[0].commit_sha == shared_sha  # B is the shared commit
 
 
+class TestTraversalGuarantees:
+    """End-to-end guarantees for roots, merges, and historical-only evidence."""
+
+    def test_merge_reachability_scans_each_commit_once(self, git_repo: Path) -> None:
+        from tests.fixtures.git_repo import build_merge_history
+
+        _root, _main, feature, _merge = build_merge_history(git_repo)
+        findings = scan_repo(
+            git_repo,
+            content_patterns=[r"SYNTHETIC_TOKEN="],
+            refs=["main", "feature"],
+        )
+
+        assert [finding.commit_sha for finding in findings] == [feature]
+
+    def test_deleted_root_exposure_remains_visible_after_clean_head(
+        self, git_repo: Path
+    ) -> None:
+        from recon.models.findings import LineType
+        from tests.fixtures.git_repo import commit, delete_file, write_file
+
+        write_file(git_repo, "root.env", "SYNTHETIC_TOKEN=root-only-value\n")
+        root_sha = commit(git_repo, "root exposure")
+        delete_file(git_repo, "root.env")
+        delete_sha = commit(git_repo, "clean head")
+
+        findings = scan_repo(git_repo, content_patterns=[r"SYNTHETIC_TOKEN="])
+
+        assert {finding.commit_sha for finding in findings} == {root_sha, delete_sha}
+        deleted = next(finding for finding in findings if finding.commit_sha == delete_sha)
+        assert deleted.line_type == LineType.DELETION
+
+
 class TestBinaryFiles:
     """Test binary file handling."""
 
@@ -313,8 +346,8 @@ class TestTraversalEdgeCases:
         findings = scan_repo(git_repo, content_patterns=[r"SECRET"])
         assert findings == []
 
-    def test_traversal_order_newest_first(self, git_repo: Path) -> None:
-        """Traversal should return commits newest-first."""
+    def test_traversal_order_topological_oldest_first(self, git_repo: Path) -> None:
+        """Traversal should return parents before their children."""
         from tests.fixtures.git_repo import commit, write_file
 
         write_file(git_repo, "a.txt", "a\n")
@@ -328,6 +361,6 @@ class TestTraversalEdgeCases:
 
         diffs = list(iter_commit_diffs(["HEAD"], cwd=git_repo))
         assert len(diffs) == 3
-        assert diffs[0].commit.subject == "C"
+        assert diffs[0].commit.subject == "A"
         assert diffs[1].commit.subject == "B"
-        assert diffs[2].commit.subject == "A"
+        assert diffs[2].commit.subject == "C"

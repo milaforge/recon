@@ -132,6 +132,19 @@ class TestGetFileChanges:
         assert ChangeStatus.MODIFIED in statuses
         assert ChangeStatus.DELETED in statuses
 
+    def test_handles_space_and_non_ascii_path(self, git_repo: Path) -> None:
+        """NUL-delimited parsing preserves unusual paths exactly."""
+        from tests.fixtures.git_repo import build_unusual_path_history
+
+        added_sha, deleted_sha = build_unusual_path_history(git_repo)
+        expected = "config files/秘密 🔐.env"
+
+        added = get_file_changes(added_sha, cwd=git_repo)
+        deleted = get_file_changes(deleted_sha, cwd=git_repo)
+        assert added[0].new_path == expected
+        assert deleted[0].old_path == expected
+        assert "SYNTHETIC_TOKEN" in get_file_patch(deleted_sha, deleted[0], cwd=git_repo)
+
 
 class TestGetFilePatch:
     """Tests for file patch retrieval."""
