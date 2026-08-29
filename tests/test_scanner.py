@@ -5,6 +5,7 @@ Scanner integration tests: end-to-end scanner with detectors.
 from pathlib import Path
 
 from recon.detectors.content import ContentDetector
+from recon.detectors.compat import RegexContentDetector, RegexPathDetector
 from recon.detectors.path import PathDetector
 from recon.git.traversal import iter_commit_diffs
 from recon.models.findings import Finding
@@ -32,10 +33,12 @@ def scan_repo(
         path_detector = PathDetector.from_patterns(path_patterns) if path_patterns else None
         content_detector = ContentDetector.from_patterns(content_patterns) if content_patterns else None
 
-        scanner = ExposureScanner(
-            path_detector=path_detector,
-            content_detector=content_detector,
-        )
+        detectors = []
+        if path_detector is not None:
+            detectors.append(RegexPathDetector(path_detector))
+        if content_detector is not None:
+            detectors.append(RegexContentDetector(content_detector))
+        scanner = ExposureScanner(detectors=tuple(detectors))
 
         commits = iter_commit_diffs(refs, cwd=repo_path)
         return list(scanner.scan(commits))

@@ -5,6 +5,12 @@ from .diff import (
     FileChange,
     FileDiff,
 )
+from .detection import (
+    Classification,
+    ClassificationResult,
+    DetectionContext,
+    Evidence,
+)
 from .findings import (
     ContentMatch,
     Finding,
@@ -16,7 +22,11 @@ __all__ = [
     "ChangeStatus",
     "Commit",
     "CommitDiff",
+    "Classification",
+    "ClassificationResult",
     "ContentMatch",
+    "DetectionContext",
+    "Evidence",
     "FileChange",
     "FileDiff",
     "Finding",

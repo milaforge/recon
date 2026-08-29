@@ -239,7 +239,15 @@ def scan_repo(repo_path, path_patterns=None, content_patterns=None, refs=None):
     prepare_repository(cwd=repo_path)
     path_detector = PathDetector.from_patterns(path_patterns) if path_patterns else None
     content_detector = ContentDetector.from_patterns(content_patterns) if content_patterns else None
-    scanner = ExposureScanner(path_detector=path_detector, content_detector=content_detector)
+    detectors = tuple(
+        detector
+        for detector in (
+            RegexPathDetector(path_detector) if path_detector else None,
+            RegexContentDetector(content_detector) if content_detector else None,
+        )
+        if detector is not None
+    )
+    scanner = ExposureScanner(detectors=detectors)
     commits = iter_commit_diffs(refs or ["HEAD"], cwd=repo_path)
     return list(scanner.scan(commits))
 

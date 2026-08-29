@@ -1,5 +1,34 @@
 # Detector Architecture
 
+## Detection and Classification Contract
+
+The production pipeline is deliberately split into four stages:
+
+```text
+Detector -> Evidence -> ClassificationResult -> Finding
+```
+
+Every detector receives the same immutable `DetectionContext`, containing the
+current `Commit` and `FileDiff`. A detector has a stable `name` and returns zero
+or more immutable `Evidence` objects. The scanner rejects evidence whose detector
+ID does not match that name, preventing findings from being attributed to the
+wrong implementation.
+
+Classifiers receive both the evidence and its original context. They run in the
+configured order; the first result other than `UNKNOWN` wins. If every classifier
+returns `UNKNOWN`, the first such result is retained. With no classifiers, the
+scanner creates an `UNKNOWN` result with zero confidence.
+
+`Evidence.value` is detector-internal candidate data. Reporters consume
+`Evidence.redacted_value` through `Finding.evidence`; they must not display the raw
+value. A finding retains the exact evidence and classification result so each
+decision is traceable. Confidence is bounded to the inclusive range 0.0–1.0.
+
+The original path and content regex matchers remain available as small, pure
+matchers. `RegexPathDetector` and `RegexContentDetector` adapt them to the new
+contract. New detectors should implement the generic contract directly rather
+than adding detector-specific branches to the scanner.
+
 ## Design Philosophy
 
 **Detectors produce evidence, not verdicts.**
@@ -8,7 +37,7 @@
 flowchart LR
     A["Input (diff/path)"] --> B["Detector (regex)"]
     B --> C["Evidence (matches)"]
-    C --> D["Classifier (future)"]
+    C --> D["Classifier"]
     D --> E["Finding (normalized)"]
 ```
 
@@ -25,16 +54,17 @@ This separation:
 ```python
 # detectors/base.py
 
-class PathDetector(Protocol):
-    """Detect patterns in file paths."""
-    def detect(self, change: FileChange) -> tuple[PathMatch, ...]: ...
+class Detector(Protocol):
+    name: str
+    def detect(self, context: DetectionContext) -> Iterable[Evidence]: ...
 
-class ContentDetector(Protocol):
-    """Detect patterns in diff content."""
-    def detect(self, patch: str) -> tuple[ContentMatch, ...]: ...
+class Classifier(Protocol):
+    def classify(
+        self, evidence: Evidence, context: DetectionContext
+    ) -> ClassificationResult: ...
 ```
 
-Both return **tuples** (immutable, ordered) of match objects.
+Detectors return an iterable of immutable evidence objects.
 
 ---
 
