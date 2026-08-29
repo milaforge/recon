@@ -47,4 +47,4 @@ Detectors return evidence (`PathMatch` or `ContentMatch`), not classifications. 
 
 Use the builders in `tests/fixtures/git_repo.py`. Do not create ad-hoc test repositories.
 
-For broader implementation rules and repository conventions, see [AGENT_GUIDE.md](../../AGENT_GUIDE.md). The canonical machine-readable architecture and operating instructions are in [AGENTS.md](../../AGENTS.md).
+The canonical machine-readable architecture, repository conventions, and operating instructions are in [AGENTS.md](../../AGENTS.md).
