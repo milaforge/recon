@@ -3,7 +3,6 @@ Historical semantics tests: complex scenarios that validate correct
 historical exposure detection.
 """
 
-import pytest
 from pathlib import Path
 
 from recon.git.traversal import iter_commit_diffs
@@ -61,7 +60,7 @@ class TestLinearHistory:
         """
         from tests.fixtures.git_repo import build_linear_history
 
-        shas = build_linear_history(git_repo)
+        build_linear_history(git_repo)
 
         # Scan all history
         findings = scan_repo(git_repo, content_patterns=[r"PRIVATE_KEY="])

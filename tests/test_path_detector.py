@@ -2,11 +2,9 @@
 Path detector tests: regex matching against file paths.
 """
 
-import pytest
 
 from recon.detectors.path import PathDetector
 from recon.models.diff import FileChange, ChangeStatus
-from recon.models.findings import PathMatch
 
 
 class TestPathDetector:

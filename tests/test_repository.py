@@ -51,7 +51,6 @@ class TestShallowRepository:
     def test_is_shallow_repository_true_for_shallow_clone(self, git_repo: Path, tmp_path: Path) -> None:
         """Shallow clone should be detected as shallow."""
         import os
-        import shutil
 
         original_cwd = os.getcwd()
         try:
@@ -73,7 +72,6 @@ class TestShallowRepository:
     def test_unshallow_converts_shallow_to_complete(self, git_repo: Path, tmp_path: Path) -> None:
         """unshallow should convert a shallow repository to complete."""
         import os
-        import shutil
 
         original_cwd = os.getcwd()
         try:

@@ -2,8 +2,6 @@
 This module will eventually feed both the path detector and content detector and answers <What changed>.
 """
 
-from dataclasses import dataclass
-from enum import StrEnum
 from pathlib import Path
 
 from .repository import run_git

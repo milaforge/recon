@@ -79,7 +79,7 @@ class TestGetReachableCommits:
         checkout(git_repo, "main")
 
         write_file(git_repo, "c.txt", "c\n")
-        sha_c = commit(git_repo, "C")
+        commit(git_repo, "C")
 
         # feature branch should have A, B
         feature_commits = get_reachable_commits("feature", cwd=git_repo)
