@@ -134,11 +134,14 @@ class Finding:
 ### Protocol (`detectors/base.py`)
 
 ```python
-class PathDetector(Protocol):
-    def detect(self, change: FileChange) -> tuple[PathMatch, ...]: ...
+class Detector(Protocol):
+    name: str
+    def detect(self, context: DetectionContext) -> Iterable[Evidence]: ...
 
-class ContentDetector(Protocol):
-    def detect(self, patch: str) -> tuple[ContentMatch, ...]: ...
+class Classifier(Protocol):
+    def classify(
+        self, evidence: Evidence, context: DetectionContext
+    ) -> ClassificationResult: ...
 ```
 
 ### Path Detector (`detectors/path.py`)

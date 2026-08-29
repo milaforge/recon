@@ -27,13 +27,22 @@ class TerminalReporter:
         print(f"    Timestamp:  {finding.timestamp}")
         print(f"    Pattern:    {finding.pattern}")
         print(f"    Evidence:   {finding.evidence}")
+        print(
+            f"    Result:     {finding.classification.value.upper()} "
+            f"({finding.classification_result.confidence:.0%} confidence)"
+        )
+        print(f"    Reason:     {finding.classification_result.reason}")
         if finding.line_type:
             location = finding.line_type.value
             if finding.line_number is not None:
                 location = f"{location}, line {finding.line_number}"
             print(f"    Diff line:  {location}")
         if finding.old_path or finding.new_path:
-            if finding.old_path and finding.new_path and finding.old_path != finding.new_path:
+            if (
+                finding.old_path
+                and finding.new_path
+                and finding.old_path != finding.new_path
+            ):
                 print(f"    Path:       {finding.old_path} -> {finding.new_path}")
             elif finding.old_path:
                 print(f"    Path:       {finding.old_path} (deleted)")

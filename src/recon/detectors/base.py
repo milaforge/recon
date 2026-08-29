@@ -3,35 +3,25 @@ Detector protocol — the abstraction that lets ExposureScanner compose
 arbitrary detectors without knowing their concrete types.
 """
 
-from typing import Protocol, TypeVar
+from collections.abc import Iterable
+from typing import Protocol
 
-from recon.models.diff import FileChange
-from recon.models.findings import ContentMatch, PathMatch
-
-T_contra = TypeVar("T_contra", contravariant=True)
+from recon.models.detection import ClassificationResult, DetectionContext, Evidence
 
 
-class Detector(Protocol[T_contra]):
+class Detector(Protocol):
     """
-    A detector consumes some input and returns matches.
-
-    The scanner only knows about the `detect` method. Concrete detectors
-    declare what input they accept via the type parameter.
+    A detector consumes a complete, immutable context and returns evidence.
     """
 
-    def detect(self, value: T_contra, /) -> tuple:
-        ...
+    name: str
+
+    def detect(self, context: DetectionContext, /) -> Iterable[Evidence]: ...
 
 
-class PathDetector(Detector[FileChange], Protocol):
-    """Detects matches against file paths in a change."""
+class Classifier(Protocol):
+    """Classifies one evidence item in its original detection context."""
 
-    def detect(self, value: FileChange, /) -> tuple[PathMatch, ...]:
-        ...
-
-
-class ContentDetector(Detector[str], Protocol):
-    """Detects matches against diff content (patch text)."""
-
-    def detect(self, value: str, /) -> tuple[ContentMatch, ...]:
-        ...
+    def classify(
+        self, evidence: Evidence, context: DetectionContext, /
+    ) -> ClassificationResult: ...

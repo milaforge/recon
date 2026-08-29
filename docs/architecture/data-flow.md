@@ -1,5 +1,28 @@
 # Data Flow Architecture
 
+The scanning boundary is context based: for each file in each reachable commit,
+`ExposureScanner` constructs one immutable `DetectionContext` and supplies it to
+every configured detector. Each returned `Evidence` item is passed through the
+ordered classifier sequence and combined with commit and path metadata in a
+`Finding`.
+
+```mermaid
+flowchart LR
+    A[CommitDiff] --> B[DetectionContext]
+    B --> C[Detector sequence]
+    C --> D[Evidence]
+    D --> E[Classifier sequence]
+    E --> F[ClassificationResult]
+    D --> G[Finding]
+    F --> G
+    G --> H[Reporter]
+```
+
+An evidence item always creates exactly one finding. Multiple evidence items from
+one detector create multiple traceable findings. An absent or inconclusive
+classifier produces `UNKNOWN`; the scanner does not silently promote evidence to
+a secret.
+
 ## End-to-End Flow
 
 ```mermaid

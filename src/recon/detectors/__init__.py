@@ -1,4 +1,5 @@
 from .content import ContentDetector, ContentMatch
+from .compat import RegexContentDetector, RegexPathDetector
 from .path import PathDetector, PathMatch
 
 __all__ = [
@@ -6,4 +7,6 @@ __all__ = [
     "ContentMatch",
     "PathDetector",
     "PathMatch",
+    "RegexContentDetector",
+    "RegexPathDetector",
 ]

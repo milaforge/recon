@@ -21,13 +21,19 @@ class JSONReporter:
             "commit_sha": finding.commit_sha,
             "commit_subject": finding.commit_subject,
             "author": finding.author,
-            "timestamp": finding.timestamp.isoformat() if isinstance(finding.timestamp, datetime) else finding.timestamp,
+            "timestamp": finding.timestamp.isoformat()
+            if isinstance(finding.timestamp, datetime)
+            else finding.timestamp,
             "old_path": finding.old_path,
             "new_path": finding.new_path,
             "pattern": finding.pattern,
             "evidence": finding.evidence,
             "line_type": finding.line_type.value if finding.line_type else None,
             "line_number": finding.line_number,
+            "classification": finding.classification.value,
+            "confidence": finding.classification_result.confidence,
+            "classification_reason": finding.classification_result.reason,
+            "detection_reason": finding.source.reason,
         }
 
     def _json_serializer(self, obj):
