@@ -26,6 +26,7 @@ class JSONReporter:
         print(json.dumps(output, indent=2, default=self._json_serializer))
 
     def _finding_to_dict(self, finding: Finding) -> dict[str, object]:
+        path, change_type = _path_and_change_type(finding)
         return {
             "detector": finding.detector,
             "commit_sha": finding.commit_sha,
@@ -36,10 +37,14 @@ class JSONReporter:
             else finding.timestamp,
             "old_path": finding.old_path,
             "new_path": finding.new_path,
+            "path": path,
+            "change_type": change_type,
             "pattern": finding.pattern,
             "evidence": _display_evidence(
                 finding, show_raw_evidence=self._show_raw_evidence
             ),
+            "evidence_redacted": not self._show_raw_evidence
+            and finding.source.redacted_value != finding.source.value,
             "line_type": finding.line_type.value if finding.line_type else None,
             "line_number": finding.line_number,
             "classification": finding.classification.value,
@@ -81,3 +86,17 @@ def _remediation(finding: Finding) -> str:
     if finding.classification.value == "unknown":
         return "Review the redacted candidate and its commit context."
     return "No credential rotation is indicated; review or suppress if appropriate."
+
+
+def _path_and_change_type(finding: Finding) -> tuple[str | None, str | None]:
+    """Return an unambiguous display path and Git change type."""
+    old_path, new_path = finding.old_path, finding.new_path
+    if old_path and new_path:
+        if old_path != new_path:
+            return f"{old_path} -> {new_path}", "renamed"
+        return new_path, "modified"
+    if new_path:
+        return new_path, "added"
+    if old_path:
+        return old_path, "deleted"
+    return None, None

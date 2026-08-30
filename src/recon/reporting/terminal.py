@@ -7,7 +7,7 @@ from pathlib import Path
 
 from recon.models.findings import Finding
 
-from .json import _display_evidence, _remediation, _summary
+from .json import _display_evidence, _path_and_change_type, _remediation, _summary
 from .navigation import navigation_targets
 
 
@@ -33,59 +33,66 @@ class TerminalReporter:
         summary = _summary(findings)
         counts = summary["classifications"]
         assert isinstance(counts, dict)
+        print("RECON SCAN REPORT")
+        print("=" * 72)
+        print(f"Scan summary: {summary['total']} finding(s)")
         print(
-            f"Scan summary: {summary['total']} finding(s) — "
-            f"SECRET {counts['secret']}, REFERENCE {counts['reference']}, "
-            f"FALSE_POSITIVE {counts['false_positive']}, UNKNOWN {counts['unknown']}"
+            "  "
+            f"Secrets: {counts['secret']}  |  Unknown: {counts['unknown']}  |  "
+            f"References: {counts['reference']}  |  False positives: {counts['false_positive']}"
         )
+        if self._show_raw_evidence:
+            print("  WARNING: Raw evidence is visible; treat this output as sensitive.")
         if not findings:
+            print("\nNo reportable exposures found.")
             return
         print()
 
         for i, finding in enumerate(findings, 1):
-            self._print_finding(i, finding)
+            self._print_finding(i, len(findings), finding)
 
-    def _print_finding(self, index: int, finding: Finding) -> None:
+    def _print_finding(self, index: int, total: int, finding: Finding) -> None:
         targets = navigation_targets(
             finding,
             repository_root=self._repository_root,
             github_repository=self._github_repository,
         )
-        print(f"[{index}] {finding.detector.upper()} MATCH")
+        classification = finding.classification.value.upper()
+        print("-" * 72)
+        print(f"[{index}/{total}] {classification} · {finding.detector.upper()} MATCH")
+        print()
+        print("  LOCATION")
+        path, change_type = _path_and_change_type(finding)
+        if path is not None:
+            linked_path = _link(targets.path_url, path, self._enable_hyperlinks)
+            line_suffix = f":{finding.line_number}" if finding.line_number else ""
+            print(f"    Path:       {linked_path}{line_suffix}")
+        if finding.line_type:
+            print(
+                f"    Diff:       {finding.line_type.value} in {change_type or 'unknown'} file"
+            )
+
+        print("\n  COMMIT")
         commit = f"{finding.commit_sha[:12]} ({finding.commit_subject})"
-        print(f"    Commit:     {_link(targets.commit_url, commit, self._enable_hyperlinks)}")
+        print(
+            f"    Commit:     {_link(targets.commit_url, commit, self._enable_hyperlinks)}"
+        )
         print(f"    Author:     {finding.author}")
         print(f"    Timestamp:  {finding.timestamp}")
-        print(f"    Pattern:    {finding.pattern}")
+        print("\n  EVIDENCE")
+        if finding.pattern:
+            print(f"    Pattern:    {finding.pattern}")
         print(
             "    Evidence:   "
             f"{_display_evidence(finding, show_raw_evidence=self._show_raw_evidence)}"
         )
+        print("\n  ASSESSMENT")
         print(
-            f"    Result:     {finding.classification.value.upper()} "
+            f"    Result:     {classification} "
             f"({finding.classification_result.confidence:.0%} confidence)"
         )
         print(f"    Reason:     {finding.classification_result.reason}")
         print(f"    Action:     {_remediation(finding)}")
-        if finding.line_type:
-            location = finding.line_type.value
-            if finding.line_number is not None:
-                location = f"{location}, line {finding.line_number}"
-            print(f"    Diff line:  {location}")
-        path: str | None = None
-        if finding.old_path or finding.new_path:
-            if (
-                finding.old_path
-                and finding.new_path
-                and finding.old_path != finding.new_path
-            ):
-                path = f"{finding.old_path} -> {finding.new_path}"
-            elif finding.old_path:
-                path = f"{finding.old_path} (deleted)"
-            elif finding.new_path:
-                path = f"{finding.new_path} (added)"
-        if path is not None:
-            print(f"    Path:       {_link(targets.path_url, path, self._enable_hyperlinks)}")
         print()
 
 
