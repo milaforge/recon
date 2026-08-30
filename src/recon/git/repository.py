@@ -10,6 +10,10 @@ class GitError(RuntimeError):
     """Raised when a Git operation fails."""
 
 
+class IncompleteRepositoryError(GitError):
+    """Raised when Recon cannot guarantee that repository history is complete."""
+
+
 def run_git(*args: str, cwd: Path | str | None = None) -> str:
     """Execute a Git command and return stdout."""
     result = subprocess.run(
@@ -72,10 +76,14 @@ def unshallow(cwd: Path | str | None = None) -> None:
     if not is_shallow_repository(cwd=cwd):
         return
 
-    remotes = [remote for remote in run_git("remote", cwd=cwd).splitlines() if remote.strip()]
+    remotes = [
+        remote for remote in run_git("remote", cwd=cwd).splitlines() if remote.strip()
+    ]
 
     if not remotes:
-        raise GitError("Repository is shallow but has no configured remote.")
+        raise IncompleteRepositoryError(
+            "Repository is shallow but has no configured remote."
+        )
 
     # Normally there is one remote. If there are several, explicitly
     # unshallow each one.
@@ -90,7 +98,9 @@ def unshallow(cwd: Path | str | None = None) -> None:
         )
 
     if is_shallow_repository(cwd=cwd):
-        raise GitError("Repository is still shallow after unshallowing.")
+        raise IncompleteRepositoryError(
+            "Repository is still shallow after unshallowing."
+        )
 
 
 def is_partial_repository(cwd: Path | str | None = None) -> bool:
@@ -117,7 +127,7 @@ def ensure_complete_repository(cwd: Path | str | None = None) -> None:
     ensure_repository(cwd=cwd)
 
     if is_partial_repository(cwd=cwd):
-        raise GitError(
+        raise IncompleteRepositoryError(
             "Partial clone detected.\n\n"
             "recon requires a complete local Git object database for "
             "historical security analysis.\n\n"
@@ -126,7 +136,7 @@ def ensure_complete_repository(cwd: Path | str | None = None) -> None:
         )
 
     if is_shallow_repository(cwd=cwd):
-        raise GitError("Repository is still shallow.")
+        raise IncompleteRepositoryError("Repository is still shallow.")
 
     ensure_unmodified_history(cwd=cwd)
 
@@ -146,7 +156,7 @@ def ensure_unmodified_history(cwd: Path | str | None = None) -> None:
     grafts_file = git_dir / "info" / "grafts"
 
     if replace_refs or (grafts_file.is_file() and grafts_file.stat().st_size > 0):
-        raise GitError(
+        raise IncompleteRepositoryError(
             "Modified Git history detected (replace refs or grafts).\n\n"
             "recon cannot guarantee complete historical analysis while Git's "
             "recorded commit graph is being rewritten locally. Remove the "
@@ -177,7 +187,9 @@ def get_git_config(key: str, cwd: Path | str | None = None) -> str | None:
 def get_remotes(cwd: Path | str | None = None) -> list[str]:
     """Return all configured Git remotes."""
     return [
-        remote.strip() for remote in run_git("remote", cwd=cwd).splitlines() if remote.strip()
+        remote.strip()
+        for remote in run_git("remote", cwd=cwd).splitlines()
+        if remote.strip()
     ]
 
 
@@ -186,7 +198,7 @@ def prepare_repository(cwd: Path | str | None = None) -> None:
     ensure_repository(cwd=cwd)
 
     if is_partial_repository(cwd=cwd):
-        raise GitError(
+        raise IncompleteRepositoryError(
             "Partial clone detected.\n\n"
             "recon requires a complete local Git object database for "
             "historical security analysis.\n\n"

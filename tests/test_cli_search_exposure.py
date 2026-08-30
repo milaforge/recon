@@ -1,0 +1,56 @@
+"""Typer-level search command and exit-code tests."""
+
+import json
+from pathlib import Path
+
+from typer.testing import CliRunner
+
+from recon.cli import app
+from tests.fixtures.git_repo import commit, create_branch, write_file
+
+runner = CliRunner()
+
+
+def _invoke(repo: Path, *args: str):
+    return runner.invoke(app, ["search_exposure", "--repo", str(repo), *args])
+
+
+def test_no_findings_terminal_exits_cleanly(git_repo: Path) -> None:
+    write_file(git_repo, "README.md", "clean\n")
+    commit(git_repo, "clean")
+    result = _invoke(git_repo, "--generic")
+    assert result.exit_code == 0
+    assert "Scan summary: 0 finding(s)" in result.stdout
+
+
+def test_json_stdout_is_parseable_and_secret_triggers_policy(git_repo: Path) -> None:
+    raw = "SYNTHETIC-a8B7c6D5e4F3"
+    write_file(git_repo, "config.env", f"API_KEY={raw}\n")
+    commit(git_repo, "synthetic exposure")
+    result = _invoke(git_repo, "--generic", "--format", "json", "HEAD")
+    assert result.exit_code == 2
+    document = json.loads(result.stdout)
+    assert document["schema_version"] == "1.0"
+    assert document["summary"]["classifications"]["secret"] == 1
+    assert raw not in result.stdout
+
+
+def test_explicit_ref_and_all_refs_have_distinct_reachability(git_repo: Path) -> None:
+    write_file(git_repo, "README.md", "clean\n")
+    commit(git_repo, "base")
+    create_branch(git_repo, "feature")
+    write_file(git_repo, "config.env", "API_KEY=SYNTHETIC-a8B7c6D5e4F3\n")
+    commit(git_repo, "feature exposure")
+
+    explicit = _invoke(git_repo, "--generic", "main")
+    all_refs = _invoke(git_repo, "--generic", "--all-refs")
+    assert explicit.exit_code == 0
+    assert all_refs.exit_code == 2
+
+
+def test_invalid_regex_ref_and_format_are_invocation_errors(git_repo: Path) -> None:
+    write_file(git_repo, "README.md", "clean\n")
+    commit(git_repo, "base")
+    assert _invoke(git_repo, "-g", "[").exit_code == 1
+    assert _invoke(git_repo, "-g", "SECRET", "missing-ref").exit_code == 1
+    assert _invoke(git_repo, "-g", "SECRET", "--format", "xml").exit_code == 1
