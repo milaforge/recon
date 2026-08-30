@@ -87,11 +87,9 @@ def test_duplicate_candidate_on_a_line_is_reported_once() -> None:
     assert len(findings) == 1
 
 
-def test_coexists_with_generic_detector_with_detector_specific_results() -> None:
+def test_specific_detector_takes_precedence_over_duplicate_generic_evidence() -> None:
     findings = _scan(f"+PRIVATE_KEY=0x{SYNTHETIC_PRIVATE_KEY}\n", with_generic=True)
-    assert {finding.detector for finding in findings} == {
-        "ethereum.private_key",
-        "generic.secret",
-    }
-    assert all(finding.classification is Classification.SECRET for finding in findings)
-    assert all(SYNTHETIC_PRIVATE_KEY not in finding.evidence for finding in findings)
+    assert len(findings) == 1
+    assert findings[0].detector == "ethereum.private_key"
+    assert findings[0].classification is Classification.SECRET
+    assert SYNTHETIC_PRIVATE_KEY not in findings[0].evidence

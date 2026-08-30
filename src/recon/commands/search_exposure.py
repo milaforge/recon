@@ -10,6 +10,10 @@ import typer
 
 from recon.detectors.compat import RegexContentDetector, RegexPathDetector
 from recon.detectors.content import ContentDetector
+from recon.detectors.ethereum import (
+    EthereumPrivateKeyClassifier,
+    EthereumPrivateKeyDetector,
+)
 from recon.detectors.generic import GenericSecretClassifier, GenericSecretDetector
 from recon.detectors.path import PathDetector
 from recon.git import (
@@ -151,6 +155,13 @@ def search_exposure(
             help="Include unredacted matched content in the report. Handle output as sensitive.",
         ),
     ] = False,
+    include_non_actionable: Annotated[
+        bool,
+        typer.Option(
+            "--include-non-actionable",
+            help="Also report references and classified false positives.",
+        ),
+    ] = False,
     repo: Annotated[
         Path | None,
         typer.Option(
@@ -213,8 +224,10 @@ def search_exposure(
             detectors.append(RegexContentDetector(content_detector))
         classifiers = []
         if generic:
-            detectors.append(GenericSecretDetector())
-            classifiers.append(GenericSecretClassifier())
+            detectors.extend((EthereumPrivateKeyDetector(), GenericSecretDetector()))
+            classifiers.extend(
+                (EthereumPrivateKeyClassifier(), GenericSecretClassifier())
+            )
         scanner = ExposureScanner(
             detectors=tuple(detectors), classifiers=tuple(classifiers)
         )
@@ -222,16 +235,26 @@ def search_exposure(
         # Traverse commits and scan
         commits = iter_commit_diffs(selected_refs, cwd=cwd)
         findings = list(scanner.scan(commits))
+        reported_findings = (
+            findings
+            if include_non_actionable
+            else [
+                finding
+                for finding in findings
+                if finding.classification.value in {"secret", "unknown"}
+            ]
+        )
 
         # Report findings
         reporter = _build_reporter(format, show_raw_evidence=show_raw_evidence)
-        reporter.report(findings)
+        reporter.report(reported_findings)
 
         policy_findings = [
             finding for finding in findings if finding.classification.value == "secret"
         ]
         typer.echo(
-            f"Done. Found {len(findings)} finding(s).",
+            f"Done. Reported {len(reported_findings)} finding(s)"
+            f"; suppressed {len(findings) - len(reported_findings)} non-actionable candidate(s).",
             err=format.lower() == "json",
         )
         if policy_findings:

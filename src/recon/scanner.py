@@ -9,7 +9,7 @@ from recon.models.detection import (
     Evidence,
 )
 from recon.models.diff import CommitDiff
-from recon.models.findings import Finding
+from recon.models.findings import Finding, LineType
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,9 +26,16 @@ class ExposureScanner:
                     commit=commit_diff.commit,
                     file_diff=file_diff,
                 )
+                evidence_owners: dict[tuple[LineType, int, str], str] = {}
                 for detector in self.detectors:
                     for evidence in detector.detect(context):
                         self._validate_evidence(detector, evidence)
+                        identity = self._evidence_identity(evidence)
+                        owner = evidence_owners.get(identity) if identity else None
+                        if owner is not None and owner != evidence.detector:
+                            continue
+                        if identity is not None:
+                            evidence_owners.setdefault(identity, evidence.detector)
                         yield Finding.from_evidence(
                             context=context,
                             source=evidence,
@@ -57,3 +64,10 @@ class ExposureScanner:
             raise ValueError(
                 "evidence detector ID must match the detector's stable name"
             )
+
+    @staticmethod
+    def _evidence_identity(evidence: Evidence) -> tuple[LineType, int, str] | None:
+        """Identify the same candidate emitted by ordered, overlapping detectors."""
+        if evidence.line_type is None or evidence.line_number is None:
+            return None
+        return evidence.line_type, evidence.line_number, evidence.value.casefold()

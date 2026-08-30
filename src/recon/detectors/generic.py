@@ -40,6 +40,9 @@ _GENERATED_PATH = re.compile(
     r"(?i)(?:\.min\.(?:js|css)$|(?:^|/)(?:dist|build|vendor)/|"
     r"(?:^|/)(?:package-lock\.json|uv\.lock|poetry\.lock)$)"
 )
+_SOURCE_CODE_PATH = re.compile(
+    r"(?i)\.(?:c|cc|cpp|cs|go|java|js|jsx|php|py|rb|rs|sol|swift|ts|tsx)$"
+)
 
 
 def redact_secret(value: str) -> str:
@@ -105,16 +108,23 @@ class GenericSecretDetector:
 
             match = _ASSIGNMENT.search(line)
             if match:
-                value = match.group("value").strip().rstrip(",;").strip()
-                value = (
-                    value[1:-1]
-                    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'"
-                    else value
+                raw_value = match.group("value").strip().rstrip(",;").strip()
+                quoted = (
+                    len(raw_value) >= 2
+                    and raw_value[0] == raw_value[-1]
+                    and raw_value[0] in "\"'`"
+                )
+                value = raw_value[1:-1] if quoted else raw_value
+                kind = (
+                    "credential_expression"
+                    if not quoted
+                    and _SOURCE_CODE_PATH.search(context.file_diff.change.path)
+                    else "credential_literal"
                 )
                 evidence.append(
                     Evidence(
                         detector=self.name,
-                        kind="credential_assignment",
+                        kind=kind,
                         value=value,
                         redacted_value=redact_secret(value),
                         reason=f"value assigned to credential-like name {match.group('name')!r}",
@@ -144,6 +154,12 @@ class GenericSecretClassifier:
                 Classification.REFERENCE,
                 0.98,
                 "value is an environment-variable lookup rather than credential material",
+            )
+        if evidence.kind == "credential_expression":
+            return ClassificationResult(
+                Classification.FALSE_POSITIVE,
+                0.98,
+                "unquoted source-code expression is not credential material",
             )
         if _PLACEHOLDER.fullmatch(evidence.value.strip()):
             return ClassificationResult(

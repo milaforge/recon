@@ -43,6 +43,23 @@ def test_does_not_match_credential_words_inside_program_identifiers() -> None:
     assert not _scan("+const isCToken = await contract.isCToken().call();\n")
 
 
+def test_source_code_expressions_are_false_positives() -> None:
+    expressions = _scan(
+        "+EIP20Interface token = EIP20Interface(underlying);\n+token = token_;\n",
+        "contracts/core.sol",
+    )
+    assert len(expressions) == 2
+    assert all(
+        finding.classification is Classification.FALSE_POSITIVE
+        for finding in expressions
+    )
+
+
+def test_unquoted_shell_assignment_remains_a_secret_candidate() -> None:
+    finding = _scan(f"+API_KEY={RAW}\n", "deploy.sh")[0]
+    assert finding.classification is Classification.SECRET
+
+
 def test_raw_reporting_includes_the_matching_assignment_line(capsys) -> None:
     finding = _scan(f'+API_KEY = "{RAW}"\n')[0]
     TerminalReporter(show_raw_evidence=True).report([finding])

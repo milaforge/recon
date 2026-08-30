@@ -51,6 +51,39 @@ def test_show_raw_evidence_is_explicit_opt_in(git_repo: Path) -> None:
     assert raw in json_result.stdout
 
 
+def test_generic_report_defaults_to_actionable_unique_findings(git_repo: Path) -> None:
+    private_key = "a5" * 32
+    replacement_key = "0" * 63 + "1"
+    write_file(
+        git_repo,
+        "contracts/core.sol",
+        "EIP20Interface token = EIP20Interface(underlying);\ntoken = token_;\n",
+    )
+    write_file(
+        git_repo,
+        "tronbox.js",
+        f"privateKey: process.env.PRIVATE_KEY_MAINNET,\nprivateKey: '{private_key}',\n",
+    )
+    commit(git_repo, "add configuration")
+    write_file(git_repo, "tronbox.js", f"privateKey: '{replacement_key}',\n")
+    commit(git_repo, "rotate configuration")
+
+    result = _invoke(git_repo, "--generic", "--show-raw-evidence", "HEAD")
+
+    assert result.exit_code == 2
+    assert "Scan summary: 3 finding(s)" in result.stdout
+    assert result.stdout.count("ETHEREUM.PRIVATE_KEY MATCH") == 3
+    assert "EIP20Interface(underlying)" not in result.stdout
+    assert "token = token_" not in result.stdout
+    assert "process.env.PRIVATE_KEY_MAINNET" not in result.stdout
+    assert private_key in result.stdout
+    assert replacement_key in result.stdout
+
+    verbose = _invoke(git_repo, "--generic", "--include-non-actionable", "HEAD")
+    assert "REFERENCE" in verbose.stdout
+    assert "FALSE_POSITIVE" in verbose.stdout
+
+
 def test_explicit_ref_and_all_refs_have_distinct_reachability(git_repo: Path) -> None:
     write_file(git_repo, "README.md", "clean\n")
     commit(git_repo, "base")
