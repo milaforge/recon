@@ -1,15 +1,15 @@
+from .detection import (
+    Classification,
+    ClassificationResult,
+    DetectionContext,
+    Evidence,
+)
 from .diff import (
     ChangeStatus,
     Commit,
     CommitDiff,
     FileChange,
     FileDiff,
-)
-from .detection import (
-    Classification,
-    ClassificationResult,
-    DetectionContext,
-    Evidence,
 )
 from .findings import (
     ContentMatch,
@@ -20,10 +20,10 @@ from .findings import (
 
 __all__ = [
     "ChangeStatus",
-    "Commit",
-    "CommitDiff",
     "Classification",
     "ClassificationResult",
+    "Commit",
+    "CommitDiff",
     "ContentMatch",
     "DetectionContext",
     "Evidence",

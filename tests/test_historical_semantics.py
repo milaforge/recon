@@ -5,8 +5,8 @@ historical exposure detection.
 
 from pathlib import Path
 
-from recon.detectors.content import ContentDetector
 from recon.detectors.compat import RegexContentDetector, RegexPathDetector
+from recon.detectors.content import ContentDetector
 from recon.detectors.path import PathDetector
 from recon.git.traversal import iter_commit_diffs
 from recon.models.findings import Finding
