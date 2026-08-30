@@ -12,6 +12,8 @@ from recon.models.detection import (
 )
 from recon.models.findings import LineType
 
+from .diff_lines import iter_diff_lines
+
 _MAX_LINE_LENGTH = 100_000
 GENERIC_SECRET_DETECTOR_ID = "generic.secret"
 _CREDENTIAL_NAME = re.compile(
@@ -51,20 +53,6 @@ def redact_secret(value: str) -> str:
     return f"<redacted sha256:{digest} length:{len(value)}>"
 
 
-def _diff_lines(patch: str) -> tuple[tuple[LineType, int, str], ...]:
-    lines: list[tuple[LineType, int, str]] = []
-    for number, raw in enumerate(patch.splitlines(), 1):
-        if raw.startswith(("+++ ", "--- ")):
-            continue
-        if raw.startswith("+"):
-            lines.append((LineType.ADDITION, number, raw[1:]))
-        elif raw.startswith("-"):
-            lines.append((LineType.DELETION, number, raw[1:]))
-        elif raw.startswith(" "):
-            lines.append((LineType.CONTEXT, number, raw[1:]))
-    return tuple(lines)
-
-
 @dataclass(frozen=True, slots=True)
 class GenericSecretDetector:
     """Find credential assignments and private-key PEM material in text diffs."""
@@ -73,7 +61,7 @@ class GenericSecretDetector:
 
     def detect(self, context: DetectionContext) -> tuple[Evidence, ...]:
         evidence: list[Evidence] = []
-        lines = _diff_lines(context.file_diff.patch)
+        lines = iter_diff_lines(context.file_diff.patch)
         pem_start: tuple[LineType, int, list[str]] | None = None
 
         for line_type, line_number, line in lines:

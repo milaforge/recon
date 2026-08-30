@@ -8,7 +8,8 @@ import re
 from dataclasses import dataclass
 from re import Pattern
 
-from ..models import ContentMatch, LineType
+from ..models import ContentMatch
+from .diff_lines import iter_diff_lines
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,23 +32,7 @@ class ContentDetector:
         """Return all regex matches found in the patch."""
         matches: list[ContentMatch] = []
 
-        for line_number, raw_line in enumerate(
-            patch.splitlines(),
-            start=1,
-        ):
-            line_type, content = self._classify_line(raw_line)
-
-            # Ignore Git metadata such as:
-            #
-            # diff --git
-            # index
-            # ---
-            # +++
-            #
-            # We only care about actual patch lines.
-            if line_type is None:
-                continue
-
+        for line_type, line_number, content in iter_diff_lines(patch):
             for pattern in self.patterns:
                 if pattern.search(content):
                     matches.append(
@@ -60,29 +45,3 @@ class ContentDetector:
                     )
 
         return tuple(matches)
-
-    @staticmethod
-    def _classify_line(
-        line: str,
-    ) -> tuple[LineType | None, str]:
-        """
-        Classify a unified-diff line.
-
-        Returns (None, ...) for diff metadata.
-        """
-        if line.startswith(("+++ ", "--- ")):
-            return None, line
-
-        if line.startswith("@@"):
-            return None, line
-
-        if line.startswith("+"):
-            return LineType.ADDITION, line[1:]
-
-        if line.startswith("-"):
-            return LineType.DELETION, line[1:]
-
-        if line.startswith(" "):
-            return LineType.CONTEXT, line[1:]
-
-        return None, line

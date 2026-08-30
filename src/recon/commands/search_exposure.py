@@ -21,11 +21,14 @@ from recon.git import (
     IncompleteRepositoryError,
     get_local_remote_refs,
     get_local_tags,
+    get_remotes,
     prepare_repository,
+    repository_root,
     run_git,
 )
 from recon.git.traversal import iter_commit_diffs
 from recon.reporting.json import JSONReporter
+from recon.reporting.navigation import github_repository_url
 from recon.reporting.terminal import TerminalReporter
 from recon.scanner import ExposureScanner
 
@@ -84,11 +87,33 @@ def _build_detectors(
     return path_detector, content_detector
 
 
-def _build_reporter(format: str, *, show_raw_evidence: bool):
+def _build_reporter(
+    format: str,
+    *,
+    show_raw_evidence: bool,
+    repository_root: Path | None = None,
+    github_repository: str | None = None,
+):
     """Build reporter instance from format string."""
     if format == "json":
         return JSONReporter(show_raw_evidence=show_raw_evidence)
-    return TerminalReporter(show_raw_evidence=show_raw_evidence)
+    return TerminalReporter(
+        show_raw_evidence=show_raw_evidence,
+        repository_root=repository_root,
+        github_repository=github_repository,
+    )
+
+
+def _github_repository(cwd: Path) -> str | None:
+    """Find the first configured GitHub remote without contacting the network."""
+    remotes = get_remotes(cwd=cwd)
+    ordered_remotes = sorted(remotes, key=lambda remote: remote != "origin")
+    for remote in ordered_remotes:
+        remote_url = run_git("remote", "get-url", remote, cwd=cwd).strip()
+        github_url = github_repository_url(remote_url)
+        if github_url:
+            return github_url
+    return None
 
 
 @app.callback(invoke_without_command=True)
@@ -246,7 +271,13 @@ def search_exposure(
         )
 
         # Report findings
-        reporter = _build_reporter(format, show_raw_evidence=show_raw_evidence)
+        root = repository_root(cwd=cwd)
+        reporter = _build_reporter(
+            format,
+            show_raw_evidence=show_raw_evidence,
+            repository_root=root if format == "terminal" else None,
+            github_repository=_github_repository(cwd) if format == "terminal" else None,
+        )
         reporter.report(reported_findings)
 
         policy_findings = [

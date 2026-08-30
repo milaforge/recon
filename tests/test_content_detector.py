@@ -126,7 +126,7 @@ class TestContentDetector:
         assert matches == ()
 
     def test_content_detector_line_number_tracking(self) -> None:
-        """ContentDetector should track line numbers correctly."""
+        """ContentDetector should track source-file line numbers correctly."""
         detector = ContentDetector.from_patterns([r"SECRET="])
 
         patch = """diff --git a/file.txt b/file.txt
@@ -142,8 +142,7 @@ class TestContentDetector:
 
         assert len(matches) == 2
         line_numbers = {m.line_number for m in matches}
-        # Line numbers are 1-indexed within the patch
-        assert all(isinstance(n, int) and n > 0 for n in line_numbers)
+        assert line_numbers == {2}
 
     def test_content_detector_classifies_addition_correctly(self) -> None:
         """ContentDetector should classify + lines as ADDITION."""

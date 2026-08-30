@@ -11,6 +11,7 @@ from recon.models.detection import (
 )
 from recon.models.findings import LineType
 
+from .diff_lines import iter_diff_lines
 from .generic import redact_secret
 
 ETHEREUM_PRIVATE_KEY_DETECTOR_ID = "ethereum.private_key"
@@ -28,20 +29,6 @@ _ASSIGNMENT = re.compile(
     r"(?P<quote>['\"]?)(?P<value>(?:0[xX])?[0-9A-Fa-f]+)(?P=quote)"
     r"(?=\s*(?:[,;#]|//|$))"
 )
-
-
-def _diff_lines(patch: str) -> tuple[tuple[LineType, int, str], ...]:
-    lines: list[tuple[LineType, int, str]] = []
-    for number, raw in enumerate(patch.splitlines(), 1):
-        if raw.startswith(("+++ ", "--- ")):
-            continue
-        if raw.startswith("+"):
-            lines.append((LineType.ADDITION, number, raw[1:]))
-        elif raw.startswith("-"):
-            lines.append((LineType.DELETION, number, raw[1:]))
-        elif raw.startswith(" "):
-            lines.append((LineType.CONTEXT, number, raw[1:]))
-    return tuple(lines)
 
 
 def _valid_private_key(candidate: str) -> bool:
@@ -67,7 +54,7 @@ class EthereumPrivateKeyDetector:
     def detect(self, context: DetectionContext) -> tuple[Evidence, ...]:
         evidence: list[Evidence] = []
         seen: set[tuple[LineType, int, str]] = set()
-        for line_type, line_number, line in _diff_lines(context.file_diff.patch):
+        for line_type, line_number, line in iter_diff_lines(context.file_diff.patch):
             if len(line) > _MAX_LINE_LENGTH:
                 continue
             for match in _ASSIGNMENT.finditer(line):
