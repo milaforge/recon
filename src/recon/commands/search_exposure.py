@@ -8,8 +8,9 @@ from typing import Annotated
 
 import typer
 
-from recon.detectors.content import ContentDetector
 from recon.detectors.compat import RegexContentDetector, RegexPathDetector
+from recon.detectors.content import ContentDetector
+from recon.detectors.generic import GenericSecretClassifier, GenericSecretDetector
 from recon.detectors.path import PathDetector
 from recon.git import (
     GitError,
@@ -99,6 +100,13 @@ def search_exposure(
             help="Regex pattern to match against diff content (repeatable).",
         ),
     ] = None,
+    generic: Annotated[
+        bool,
+        typer.Option(
+            "--generic",
+            help="Use the built-in generic credential detector and classifier.",
+        ),
+    ] = False,
     all_refs: Annotated[
         bool,
         typer.Option(
@@ -150,9 +158,9 @@ def search_exposure(
     content_patterns = content_pattern or []
     selected_ref_args = refs or []
 
-    if not path_patterns and not content_patterns:
+    if not path_patterns and not content_patterns and not generic:
         typer.echo(
-            "Error: At least one of -p/--path-pattern or -g/--content-pattern is required.",
+            "Error: Use --generic or provide a path/content pattern.",
             err=True,
         )
         raise typer.Exit(1)
@@ -182,7 +190,13 @@ def search_exposure(
             detectors.append(RegexPathDetector(path_detector))
         if content_detector is not None:
             detectors.append(RegexContentDetector(content_detector))
-        scanner = ExposureScanner(detectors=tuple(detectors))
+        classifiers = []
+        if generic:
+            detectors.append(GenericSecretDetector())
+            classifiers.append(GenericSecretClassifier())
+        scanner = ExposureScanner(
+            detectors=tuple(detectors), classifiers=tuple(classifiers)
+        )
 
         # Traverse commits and scan
         commits = iter_commit_diffs(selected_refs, cwd=cwd)
