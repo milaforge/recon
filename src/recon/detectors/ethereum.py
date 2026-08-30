@@ -93,6 +93,7 @@ class EthereumPrivateKeyDetector:
                         ),
                         line_type=line_type,
                         line_number=line_number,
+                        source_line=line,
                     )
                 )
         return tuple(evidence)

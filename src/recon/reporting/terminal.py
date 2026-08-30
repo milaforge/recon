@@ -10,6 +10,9 @@ from .json import _display_evidence, _remediation, _summary
 class TerminalReporter:
     """Human-readable terminal output for findings."""
 
+    def __init__(self, *, show_raw_evidence: bool = False) -> None:
+        self._show_raw_evidence = show_raw_evidence
+
     def report(self, findings: list[Finding]) -> None:
         summary = _summary(findings)
         counts = summary["classifications"]
@@ -32,7 +35,10 @@ class TerminalReporter:
         print(f"    Author:     {finding.author}")
         print(f"    Timestamp:  {finding.timestamp}")
         print(f"    Pattern:    {finding.pattern}")
-        print(f"    Evidence:   {_display_evidence(finding)}")
+        print(
+            "    Evidence:   "
+            f"{_display_evidence(finding, show_raw_evidence=self._show_raw_evidence)}"
+        )
         print(
             f"    Result:     {finding.classification.value.upper()} "
             f"({finding.classification_result.confidence:.0%} confidence)"

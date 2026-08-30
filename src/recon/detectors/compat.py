@@ -47,6 +47,7 @@ class RegexContentDetector:
                 line_type=match.line_type,
                 line_number=match.line_number,
                 reason="diff content matched a user-supplied regular expression",
+                source_line=match.line,
             )
             for match in self.matcher.detect(context.file_diff.patch)
         )

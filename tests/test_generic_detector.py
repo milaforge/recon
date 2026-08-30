@@ -38,6 +38,19 @@ def test_classifies_credential_assignment_and_redacts_it() -> None:
     assert RAW not in finding.evidence
 
 
+def test_does_not_match_credential_words_inside_program_identifiers() -> None:
+    assert not _scan("+cTokens[i] = CToken(cTokenAddress);\n", "contracts/core.sol")
+    assert not _scan("+const isCToken = await contract.isCToken().call();\n")
+
+
+def test_raw_reporting_includes_the_matching_assignment_line(capsys) -> None:
+    finding = _scan(f'+API_KEY = "{RAW}"\n')[0]
+    TerminalReporter(show_raw_evidence=True).report([finding])
+    JSONReporter(show_raw_evidence=True).report([finding])
+    output = capsys.readouterr().out
+    assert f'API_KEY = "{RAW}"' in output
+
+
 def test_classifies_environment_reference_and_placeholder() -> None:
     reference = _scan('+password: os.getenv("DATABASE_PASSWORD")\n')[0]
     placeholder = _scan('+token = "changeme"\n')[0]

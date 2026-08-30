@@ -14,6 +14,9 @@ class JSONReporter:
 
     SCHEMA_VERSION = "1.0"
 
+    def __init__(self, *, show_raw_evidence: bool = False) -> None:
+        self._show_raw_evidence = show_raw_evidence
+
     def report(self, findings: list[Finding]) -> None:
         output = {
             "schema_version": self.SCHEMA_VERSION,
@@ -34,7 +37,9 @@ class JSONReporter:
             "old_path": finding.old_path,
             "new_path": finding.new_path,
             "pattern": finding.pattern,
-            "evidence": _display_evidence(finding),
+            "evidence": _display_evidence(
+                finding, show_raw_evidence=self._show_raw_evidence
+            ),
             "line_type": finding.line_type.value if finding.line_type else None,
             "line_number": finding.line_number,
             "classification": finding.classification.value,
@@ -59,8 +64,12 @@ def _summary(findings: list[Finding]) -> dict[str, object]:
     return {"total": len(findings), "classifications": classifications}
 
 
-def _display_evidence(finding: Finding) -> str:
-    """Defensively redact raw content emitted by compatibility detectors."""
+def _display_evidence(finding: Finding, *, show_raw_evidence: bool = False) -> str:
+    """Return raw evidence only when the caller has explicitly opted in."""
+    if show_raw_evidence:
+        return finding.source.source_line or finding.source.value
+
+    # Defensively redact raw content emitted by compatibility detectors.
     if finding.source.kind == "content":
         return redact_secret(finding.source.value)
     return finding.evidence

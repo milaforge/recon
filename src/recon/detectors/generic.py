@@ -15,8 +15,8 @@ from recon.models.findings import LineType
 _MAX_LINE_LENGTH = 100_000
 GENERIC_SECRET_DETECTOR_ID = "generic.secret"
 _CREDENTIAL_NAME = re.compile(
-    r"(?ix)(?:api[_-]?key|access[_-]?key|client[_-]?secret|private[_-]?key|"
-    r"password|passwd|secret|auth[_-]?token|token)"
+    r"(?ix)(?<![a-z0-9_])(?:api[_-]?key|access[_-]?key|client[_-]?secret|"
+    r"private[_-]?key|password|passwd|secret|auth[_-]?token|token)(?![a-z0-9_])"
 )
 _ASSIGNMENT = re.compile(
     rf"(?P<name>{_CREDENTIAL_NAME.pattern.replace('(?ix)', '')})\s*(?:=|:)\s*(?P<value>.+?)\s*$",
@@ -92,6 +92,7 @@ class GenericSecretDetector:
                                 reason="private-key PEM boundaries were found",
                                 line_type=start_type,
                                 line_number=start_number,
+                                source_line=value,
                             )
                         )
                         pem_start = None
@@ -119,6 +120,7 @@ class GenericSecretDetector:
                         reason=f"value assigned to credential-like name {match.group('name')!r}",
                         line_type=line_type,
                         line_number=line_number,
+                        source_line=line,
                     )
                 )
         return tuple(evidence)

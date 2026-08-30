@@ -80,11 +80,11 @@ def _build_detectors(
     return path_detector, content_detector
 
 
-def _build_reporter(format: str):
+def _build_reporter(format: str, *, show_raw_evidence: bool):
     """Build reporter instance from format string."""
     if format == "json":
-        return JSONReporter()
-    return TerminalReporter()
+        return JSONReporter(show_raw_evidence=show_raw_evidence)
+    return TerminalReporter(show_raw_evidence=show_raw_evidence)
 
 
 @app.callback(invoke_without_command=True)
@@ -144,6 +144,13 @@ def search_exposure(
             case_sensitive=False,
         ),
     ] = "terminal",
+    show_raw_evidence: Annotated[
+        bool,
+        typer.Option(
+            "--show-raw-evidence",
+            help="Include unredacted matched content in the report. Handle output as sensitive.",
+        ),
+    ] = False,
     repo: Annotated[
         Path | None,
         typer.Option(
@@ -159,6 +166,7 @@ def search_exposure(
         recon search_exposure -g 'PRIVATE_KEY='
         recon search_exposure -p '\\.env$' -g 'API_KEY='
         recon search_exposure -a -p '\\.env$' -g 'PRIVATE_KEY=' -g 'MNEMONIC'
+        recon search_exposure --generic --show-raw-evidence
     """
     path_patterns = path_pattern or []
     content_patterns = content_pattern or []
@@ -216,7 +224,7 @@ def search_exposure(
         findings = list(scanner.scan(commits))
 
         # Report findings
-        reporter = _build_reporter(format)
+        reporter = _build_reporter(format, show_raw_evidence=show_raw_evidence)
         reporter.report(findings)
 
         policy_findings = [

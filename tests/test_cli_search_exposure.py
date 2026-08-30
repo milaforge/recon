@@ -35,6 +35,22 @@ def test_json_stdout_is_parseable_and_secret_triggers_policy(git_repo: Path) -> 
     assert raw not in result.stdout
 
 
+def test_show_raw_evidence_is_explicit_opt_in(git_repo: Path) -> None:
+    raw = "SYNTHETIC-a8B7c6D5e4F3"
+    write_file(git_repo, "config.env", f"API_KEY={raw}\\n")
+    commit(git_repo, "synthetic exposure")
+
+    terminal = _invoke(git_repo, "--generic", "--show-raw-evidence", "HEAD")
+    json_result = _invoke(
+        git_repo, "--generic", "--show-raw-evidence", "--format", "json", "HEAD"
+    )
+
+    assert terminal.exit_code == 2
+    assert json_result.exit_code == 2
+    assert raw in terminal.stdout
+    assert raw in json_result.stdout
+
+
 def test_explicit_ref_and_all_refs_have_distinct_reachability(git_repo: Path) -> None:
     write_file(git_repo, "README.md", "clean\n")
     commit(git_repo, "base")

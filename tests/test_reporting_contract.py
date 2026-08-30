@@ -62,6 +62,14 @@ def test_terminal_has_summary_actionable_details_and_no_raw_value(capsys) -> Non
     assert RAW not in output
 
 
+def test_reporters_show_raw_evidence_only_when_explicitly_requested(capsys) -> None:
+    findings = _findings()
+    TerminalReporter(show_raw_evidence=True).report(findings)
+    JSONReporter(show_raw_evidence=True).report(findings)
+    output = capsys.readouterr().out
+    assert RAW in output
+
+
 def test_empty_reports_have_stable_shape(capsys) -> None:
     JSONReporter().report([])
     document = json.loads(capsys.readouterr().out)

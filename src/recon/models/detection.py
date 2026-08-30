@@ -17,7 +17,7 @@ class DetectionContext:
 
 @dataclass(frozen=True, slots=True)
 class Evidence:
-    """A detector candidate, including its safe display representation."""
+    """A detector candidate, including safe and opt-in raw representations."""
 
     detector: str
     kind: str
@@ -27,6 +27,7 @@ class Evidence:
     pattern: str | None = None
     line_type: LineType | None = None
     line_number: int | None = None
+    source_line: str | None = None
 
 
 class Classification(StrEnum):
