@@ -49,6 +49,9 @@ def test_json_schema_is_versioned_complete_and_redacted(capsys) -> None:
     }
     assert all(item["detector"] == "generic.secret" for item in document["findings"])
     assert all("remediation" in item for item in document["findings"])
+    assert all(item["path"] == "config.env" for item in document["findings"])
+    assert all(item["change_type"] == "added" for item in document["findings"])
+    assert all(item["evidence_redacted"] is True for item in document["findings"])
     assert RAW not in output
 
 
@@ -56,7 +59,11 @@ def test_terminal_has_summary_actionable_details_and_no_raw_value(capsys) -> Non
     TerminalReporter().report(_findings())
     output = capsys.readouterr().out
     assert "Scan summary: 3 finding(s)" in output
-    assert "SECRET 1, REFERENCE 1, FALSE_POSITIVE 0, UNKNOWN 1" in output
+    assert (
+        "Secrets: 1  |  Unknown: 1  |  References: 1  |  False positives: 0" in output
+    )
+    assert "LOCATION" in output
+    assert "Path:       config.env:1" in output
     assert "Action:" in output
     assert "generic.secret".upper() in output
     assert RAW not in output
@@ -68,6 +75,7 @@ def test_reporters_show_raw_evidence_only_when_explicitly_requested(capsys) -> N
     JSONReporter(show_raw_evidence=True).report(findings)
     output = capsys.readouterr().out
     assert RAW in output
+    assert "WARNING: Raw evidence is visible" in output
 
 
 def test_empty_reports_have_stable_shape(capsys) -> None:

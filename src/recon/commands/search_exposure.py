@@ -27,6 +27,7 @@ from recon.git import (
     run_git,
 )
 from recon.git.traversal import iter_commit_diffs
+from recon.reporting.interactive import InteractiveReporter
 from recon.reporting.json import JSONReporter
 from recon.reporting.navigation import github_repository_url
 from recon.reporting.terminal import TerminalReporter
@@ -91,10 +92,16 @@ def _build_reporter(
     format: str,
     *,
     show_raw_evidence: bool,
+    tui: bool = False,
     repository_root: Path | None = None,
     github_repository: str | None = None,
 ):
     """Build reporter instance from format string."""
+    if tui:
+        return InteractiveReporter(
+            repository_root=repository_root,
+            github_repository=github_repository,
+        )
     if format == "json":
         return JSONReporter(show_raw_evidence=show_raw_evidence)
     return TerminalReporter(
@@ -180,6 +187,13 @@ def search_exposure(
             help="Include unredacted matched content in the report. Handle output as sensitive.",
         ),
     ] = False,
+    tui: Annotated[
+        bool,
+        typer.Option(
+            "--tui",
+            help="Browse and filter findings in an interactive terminal report.",
+        ),
+    ] = False,
     include_non_actionable: Annotated[
         bool,
         typer.Option(
@@ -211,6 +225,16 @@ def search_exposure(
     format = format.lower()
     if format not in {"terminal", "json"}:
         typer.echo("Error: --format must be 'terminal' or 'json'.", err=True)
+        raise typer.Exit(EXIT_INVALID)
+
+    if tui and format == "json":
+        typer.echo("Error: --tui cannot be combined with --format json.", err=True)
+        raise typer.Exit(EXIT_INVALID)
+    if tui and show_raw_evidence:
+        typer.echo(
+            "Error: Use the TUI's confirmation prompt to reveal raw evidence.",
+            err=True,
+        )
         raise typer.Exit(EXIT_INVALID)
 
     if not path_patterns and not content_patterns and not generic:
@@ -262,7 +286,7 @@ def search_exposure(
         findings = list(scanner.scan(commits))
         reported_findings = (
             findings
-            if include_non_actionable
+            if include_non_actionable or tui
             else [
                 finding
                 for finding in findings
@@ -275,6 +299,7 @@ def search_exposure(
         reporter = _build_reporter(
             format,
             show_raw_evidence=show_raw_evidence,
+            tui=tui,
             repository_root=root if format == "terminal" else None,
             github_repository=_github_repository(cwd) if format == "terminal" else None,
         )

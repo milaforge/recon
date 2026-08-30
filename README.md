@@ -2,9 +2,12 @@
 
 Deleting a committed secret does not remove it from Git history.
 
-Recon searches commits, branches, and tags to show what sensitive material was exposed and where.
+Recon scans staged, unstaged, and untracked work before it is committed. It can also
+search commits, branches, and tags to show what sensitive material was exposed and
+where.
 
-Today, Recon scans existing history. Preventing secrets before commit is next.
+Run `recon scan` while developing, or `recon scan -a` for a comprehensive history
+scan in CI.
 
 ## Start here
 

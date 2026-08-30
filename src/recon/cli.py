@@ -2,6 +2,7 @@ from importlib.metadata import version as package_version
 
 import typer
 
+from .commands.scan import scan
 from .commands.search_exposure import app as search_exposure_app
 from .git import GitError, fetch_all
 
@@ -16,6 +17,7 @@ git_app = typer.Typer(
 
 app.add_typer(git_app, name="git")
 app.add_typer(search_exposure_app, name="search_exposure")
+app.command("scan")(scan)
 
 
 @app.command()

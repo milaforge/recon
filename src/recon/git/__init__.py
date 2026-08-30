@@ -31,6 +31,7 @@ from .repository import (
     run_git,
     unshallow,
 )
+from .working_tree import get_working_tree_diffs
 
 __all__ = [
     "Commit",
@@ -51,6 +52,7 @@ __all__ = [
     "get_reachable_commits",
     "get_remote_branches",
     "get_remotes",
+    "get_working_tree_diffs",
     "is_shallow_repository",
     "prepare_repository",
     "repository_root",

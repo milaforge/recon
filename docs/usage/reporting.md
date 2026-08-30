@@ -10,8 +10,17 @@ Candidate credential values are redacted to a deterministic fingerprint and leng
 unless `--show-raw-evidence` is explicitly set. Raw evidence can contain live
 credentials and must be handled as sensitive output.
 
+Use `--tui` to browse an interactive terminal report. Its menu can switch between
+all findings, secrets, references, unknown candidates, and false positives without
+rerunning the scan. Raw evidence can be revealed from the menu only after an explicit
+confirmation, and can be hidden again immediately. `--tui` is intentionally
+incompatible with `--format json`; JSON remains a non-interactive automation format.
+
 JSON output is a single object with `schema_version: "1.0"`, a `summary`, and a
-`findings` array. Additive fields may be introduced within version 1; removing or
+`findings` array. Each finding includes the original `old_path` and `new_path` plus
+an unambiguous display `path`, `change_type`, and an `evidence_redacted` flag so
+automation never needs to infer file lifecycle or evidence handling. Additive fields
+may be introduced within version 1; removing or
 renaming fields requires a schema-version change. Progress messages go to stderr so
 stdout remains parseable JSON.
 
