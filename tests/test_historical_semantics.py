@@ -7,6 +7,7 @@ from pathlib import Path
 
 from recon.detectors.compat import RegexContentDetector, RegexPathDetector
 from recon.detectors.content import ContentDetector
+from recon.detectors.generic import GenericSecretClassifier, GenericSecretDetector
 from recon.detectors.path import PathDetector
 from recon.git.traversal import iter_commit_diffs
 from recon.models.findings import Finding
@@ -21,18 +22,26 @@ def scan_repo(
 ) -> list[Finding]:
     """Run the full scan pipeline on a repository."""
     import os
+
     original_cwd = os.getcwd()
     try:
         os.chdir(repo_path)
 
         from recon.git.repository import prepare_repository
+
         prepare_repository(cwd=repo_path)
 
         if refs is None:
             refs = ["HEAD"]
 
-        path_detector = PathDetector.from_patterns(path_patterns) if path_patterns else None
-        content_detector = ContentDetector.from_patterns(content_patterns) if content_patterns else None
+        path_detector = (
+            PathDetector.from_patterns(path_patterns) if path_patterns else None
+        )
+        content_detector = (
+            ContentDetector.from_patterns(content_patterns)
+            if content_patterns
+            else None
+        )
 
         detectors = []
         if path_detector is not None:
@@ -45,6 +54,72 @@ def scan_repo(
         return list(scanner.scan(commits))
     finally:
         os.chdir(original_cwd)
+
+
+def scan_repo_generic(repo_path: Path, refs: list[str] | None = None) -> list[Finding]:
+    """Run built-in generic detection/classification over real Git history."""
+    from recon.git.repository import prepare_repository
+
+    prepare_repository(cwd=repo_path)
+    scanner = ExposureScanner(
+        detectors=(GenericSecretDetector(),),
+        classifiers=(GenericSecretClassifier(),),
+    )
+    return list(scanner.scan(iter_commit_diffs(refs or ["HEAD"], cwd=repo_path)))
+
+
+class TestClassifiedSyntheticHistory:
+    """Required Phase 5 semantics through detector → classifier → finding."""
+
+    def test_classification_provenance_lifecycle_and_redaction(
+        self, git_repo: Path
+    ) -> None:
+        from recon.models import Classification, LineType
+        from tests.fixtures.git_repo import build_classified_secret_history
+
+        raw = "SYNTHETIC-a8B7c6D5e4F3"
+        shas = build_classified_secret_history(git_repo)
+        findings = scan_repo_generic(git_repo)
+
+        by_commit = {}
+        for finding in findings:
+            by_commit.setdefault(finding.commit_sha, []).append(finding)
+
+        secret = by_commit[shas["secret"]][0]
+        reference = by_commit[shas["reference"]][0]
+        false_positive = by_commit[shas["false_positive"]][0]
+        deleted = by_commit[shas["delete"]][0]
+
+        assert secret.detector == "generic.secret"
+        assert secret.classification is Classification.SECRET
+        assert secret.new_path == "config.env"
+        assert secret.line_type is LineType.ADDITION
+        assert secret.evidence.startswith("<redacted sha256:")
+        assert reference.classification is Classification.REFERENCE
+        assert false_positive.classification is Classification.FALSE_POSITIVE
+        assert deleted.classification is Classification.SECRET
+        assert deleted.old_path == "archive/config.env"
+        assert deleted.new_path is None
+        assert deleted.line_type is LineType.DELETION
+        assert all(raw not in finding.evidence for finding in findings)
+
+    def test_historical_only_clean_head_and_shared_ref_deduplication(
+        self, git_repo: Path
+    ) -> None:
+        from tests.fixtures.git_repo import (
+            build_classified_secret_history,
+            create_branch,
+        )
+
+        shas = build_classified_secret_history(git_repo)
+        create_branch(git_repo, "second-ref")
+        findings = scan_repo_generic(git_repo, ["main", "second-ref"])
+
+        secret_additions = [
+            finding for finding in findings if finding.commit_sha == shas["secret"]
+        ]
+        assert len(secret_additions) == 1
+        assert not (git_repo / "archive/config.env").exists()
 
 
 class TestLinearHistory:
@@ -114,20 +189,28 @@ class TestBranchScenarios:
         _main_sha, _feature_sha = build_branch_with_secret(git_repo)
 
         # Scan main - clean
-        findings_main = scan_repo(git_repo, content_patterns=[r"api_key"], refs=["main"])
+        findings_main = scan_repo(
+            git_repo, content_patterns=[r"api_key"], refs=["main"]
+        )
         assert len(findings_main) == 0
 
         # Scan feature - has secret in two commits (add + delete)
-        findings_feature = scan_repo(git_repo, content_patterns=[r"api_key"], refs=["feature"])
+        findings_feature = scan_repo(
+            git_repo, content_patterns=[r"api_key"], refs=["feature"]
+        )
         assert len(findings_feature) == 2
         assert "api_key" in findings_feature[0].evidence.lower()
         assert "api_key" in findings_feature[1].evidence.lower()
 
         # Scan both - deduplicated (shared commits: initial, add config)
-        findings_both = scan_repo(git_repo, content_patterns=[r"api_key"], refs=["main", "feature"])
+        findings_both = scan_repo(
+            git_repo, content_patterns=[r"api_key"], refs=["main", "feature"]
+        )
         assert len(findings_both) == 2
 
-    def test_secret_added_then_removed_on_different_branch(self, git_repo: Path) -> None:
+    def test_secret_added_then_removed_on_different_branch(
+        self, git_repo: Path
+    ) -> None:
         """
         main: C1 -> C2 (add secret) -> C3 (clean)
         feature: C1 -> C2 -> C4 (remove secret)
@@ -147,11 +230,14 @@ class TestBranchScenarios:
         # Back to main, remove secret
         checkout(git_repo, "main")
         from tests.fixtures.git_repo import delete_file
+
         delete_file(git_repo, "secret.txt")
         commit(git_repo, "Remove token")
 
         # Scan feature - should find addition (commit C2 is shared)
-        findings_feature = scan_repo(git_repo, content_patterns=[r"TOKEN="], refs=["feature"])
+        findings_feature = scan_repo(
+            git_repo, content_patterns=[r"TOKEN="], refs=["feature"]
+        )
         assert len(findings_feature) == 1
         assert findings_feature[0].commit_subject == "Add token"
 
@@ -162,7 +248,9 @@ class TestBranchScenarios:
         assert subjects == {"Add token", "Remove token"}
 
         # Scan both - should find 2 unique commits (Add token is shared, Remove token is main-only)
-        findings_both = scan_repo(git_repo, content_patterns=[r"TOKEN="], refs=["main", "feature"])
+        findings_both = scan_repo(
+            git_repo, content_patterns=[r"TOKEN="], refs=["main", "feature"]
+        )
         assert len(findings_both) == 2
 
 
@@ -182,7 +270,9 @@ class TestSharedCommitDeduplication:
 
         _main_sha, _feature_sha, shared_sha = build_shared_commit(git_repo)
 
-        findings = scan_repo(git_repo, content_patterns=[r"SECRET="], refs=["main", "feature"])
+        findings = scan_repo(
+            git_repo, content_patterns=[r"SECRET="], refs=["main", "feature"]
+        )
 
         # Should produce exactly ONE finding for the shared commit B
         assert len(findings) == 1
@@ -218,7 +308,9 @@ class TestTraversalGuarantees:
         findings = scan_repo(git_repo, content_patterns=[r"SYNTHETIC_TOKEN="])
 
         assert {finding.commit_sha for finding in findings} == {root_sha, delete_sha}
-        deleted = next(finding for finding in findings if finding.commit_sha == delete_sha)
+        deleted = next(
+            finding for finding in findings if finding.commit_sha == delete_sha
+        )
         assert deleted.line_type == LineType.DELETION
 
 
@@ -284,7 +376,9 @@ class TestFalsePositives:
         """Documentation examples should match as evidence."""
         from tests.fixtures.git_repo import commit, write_file
 
-        write_file(git_repo, "README.md", "# Config\n\nSet `PRIVATE_KEY=your_key_here`\n")
+        write_file(
+            git_repo, "README.md", "# Config\n\nSet `PRIVATE_KEY=your_key_here`\n"
+        )
         commit(git_repo, "Add docs")
 
         findings = scan_repo(git_repo, content_patterns=[r"PRIVATE_KEY"])
@@ -300,7 +394,11 @@ class TestMultiplePatterns:
         """Multiple content patterns should all be matched."""
         from tests.fixtures.git_repo import commit, write_file
 
-        write_file(git_repo, "config.env", "API_KEY=key1\nPRIVATE_KEY=key2\nMNEMONIC=word1 word2\n")
+        write_file(
+            git_repo,
+            "config.env",
+            "API_KEY=key1\nPRIVATE_KEY=key2\nMNEMONIC=word1 word2\n",
+        )
         commit(git_repo, "Add keys")
 
         findings = scan_repo(

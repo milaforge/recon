@@ -23,6 +23,7 @@ from .refs import (
 )
 from .repository import (
     GitError,
+    IncompleteRepositoryError,
     ensure_repository,
     is_shallow_repository,
     prepare_repository,
@@ -35,6 +36,7 @@ __all__ = [
     "Commit",
     "FileChange",
     "GitError",
+    "IncompleteRepositoryError",
     "RemoteBranch",
     "ensure_repository",
     "fetch_all",

@@ -145,7 +145,9 @@ def get_remote_branches(repo: Path, remote: str = "origin") -> list[tuple[str, s
 
 def get_local_branches(repo: Path) -> list[str]:
     """Return all local branch names."""
-    output = run_git("for-each-ref", "--format=%(refname:short)", "refs/heads/", cwd=repo)
+    output = run_git(
+        "for-each-ref", "--format=%(refname:short)", "refs/heads/", cwd=repo
+    )
     return [b for b in output.splitlines() if b]
 
 
@@ -170,8 +172,17 @@ def make_shallow(repo: Path, depth: int = 1) -> None:
     """Make a repository shallow (for testing shallow detection)."""
     with tempfile.TemporaryDirectory() as tmpdir:
         shallow = Path(tmpdir) / "shallow"
-        run_git("clone", "--depth", str(depth), "--no-single-branch", f"file://{repo}", str(shallow), cwd=Path.cwd())
+        run_git(
+            "clone",
+            "--depth",
+            str(depth),
+            "--no-single-branch",
+            f"file://{repo}",
+            str(shallow),
+            cwd=Path.cwd(),
+        )
         import shutil
+
         shutil.rmtree(repo / ".git")
         shutil.move(shallow / ".git", repo / ".git")
 
@@ -193,6 +204,7 @@ def clone_repo(remote: Path, target: Path) -> None:
 # ──────────────────────────────────────────────────────────────────────
 # Scenario builders — common historical patterns
 # ──────────────────────────────────────────────────────────────────────
+
 
 def build_linear_history(repo: Path) -> list[str]:
     """
@@ -280,6 +292,30 @@ def build_shared_commit(repo: Path) -> tuple[str, str, str]:
     checkout(repo, "main")
 
     return main_sha, feature_sha, shared_sha
+
+
+def build_classified_secret_history(repo: Path) -> dict[str, str]:
+    """Build synthetic classified cases and a rename/delete lifecycle.
+
+    All candidate values are locally invented, explicitly synthetic test data.
+    The returned mapping identifies commits so semantic tests can assert exact
+    provenance rather than relying only on finding counts.
+    """
+    shas: dict[str, str] = {}
+    write_file(repo, "config.env", "API_KEY=SYNTHETIC-a8B7c6D5e4F3\n")
+    shas["secret"] = commit(repo, "add synthetic credential")
+
+    write_file(repo, "app.py", 'password = os.getenv("DATABASE_PASSWORD")\n')
+    shas["reference"] = commit(repo, "add environment reference")
+
+    write_file(repo, "tests/fixture.env", "AUTH_TOKEN=changeme\n")
+    shas["false_positive"] = commit(repo, "add explicit test placeholder")
+
+    rename_file(repo, "config.env", "archive/config.env")
+    shas["rename"] = commit(repo, "rename synthetic credential")
+    delete_file(repo, "archive/config.env")
+    shas["delete"] = commit(repo, "remove synthetic credential")
+    return shas
 
 
 def build_merge_history(repo: Path) -> tuple[str, str, str, str]:

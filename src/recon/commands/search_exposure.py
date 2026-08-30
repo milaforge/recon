@@ -14,6 +14,7 @@ from recon.detectors.generic import GenericSecretClassifier, GenericSecretDetect
 from recon.detectors.path import PathDetector
 from recon.git import (
     GitError,
+    IncompleteRepositoryError,
     get_local_remote_refs,
     get_local_tags,
     prepare_repository,
@@ -28,6 +29,11 @@ app = typer.Typer(
     name="search_exposure",
     help="Search Git history for exposed secrets and sensitive patterns.",
 )
+
+EXIT_CLEAN = 0
+EXIT_INVALID = 1
+EXIT_POLICY_FINDINGS = 2
+EXIT_INCOMPLETE = 3
 
 
 def _resolve_refs(
@@ -158,6 +164,11 @@ def search_exposure(
     content_patterns = content_pattern or []
     selected_ref_args = refs or []
 
+    format = format.lower()
+    if format not in {"terminal", "json"}:
+        typer.echo("Error: --format must be 'terminal' or 'json'.", err=True)
+        raise typer.Exit(EXIT_INVALID)
+
     if not path_patterns and not content_patterns and not generic:
         typer.echo(
             "Error: Use --generic or provide a path/content pattern.",
@@ -177,7 +188,9 @@ def search_exposure(
             typer.echo("No refs to scan.")
             raise typer.Exit(0)
 
-        typer.echo(f"Scanning {len(selected_refs)} ref(s)...")
+        typer.echo(
+            f"Scanning {len(selected_refs)} ref(s)...", err=format.lower() == "json"
+        )
 
         # Build detectors
         path_detector, content_detector = _build_detectors(
@@ -206,8 +219,19 @@ def search_exposure(
         reporter = _build_reporter(format)
         reporter.report(findings)
 
-        typer.echo(f"\nDone. Found {len(findings)} match(es).")
+        policy_findings = [
+            finding for finding in findings if finding.classification.value == "secret"
+        ]
+        typer.echo(
+            f"Done. Found {len(findings)} finding(s).",
+            err=format.lower() == "json",
+        )
+        if policy_findings:
+            raise typer.Exit(EXIT_POLICY_FINDINGS)
 
+    except IncompleteRepositoryError as e:
+        typer.echo(f"Incomplete scan: {e}", err=True)
+        raise typer.Exit(EXIT_INCOMPLETE)
     except (GitError, OSError, re.error) as e:
         typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_INVALID)
